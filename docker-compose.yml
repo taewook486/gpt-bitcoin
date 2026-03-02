@@ -1,0 +1,96 @@
+# Docker Compose for GPT Bitcoin Auto-Trading System
+# Local development environment with optional production-like services
+#
+# Main application service
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gpt-bitcoin-app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-console}
+    env_file:
+      - .env
+    restart:
+      unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - gpt-bitcoin-network
+
+  # Redis cache (optional - for distributed caching)
+  redis:
+    image: redis:7-alpine
+    container_name: gpt-bitcoin-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - gpt-bitcoin-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - cache
+
+  # PostgreSQL database (optional - for persistent data)
+  postgres:
+    image: postgres:16-alpine
+    container_name: gpt-bitcoin-postgres
+    environment:
+      POSTGRES_DB: gpt_bitcoin
+      POSTGRES_USER: gpt_user
+      POSTGRES_PASSWORD: gpt_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - gpt-bitcoin-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "gpt_user", "-d", "gpt_bitcoin", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - database
+
+networks:
+  gpt-bitcoin-network:
+
+volumes:
+  redis-data:
+  postgres-data:
+
+# Named profiles for different configurations
+profiles:
+  production:
+    services:
+      - app
+    environment:
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+
+  development:
+    services:
+      - app
+    environment:
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=console
+    volumes:
+      - ./src:/app/src:ro

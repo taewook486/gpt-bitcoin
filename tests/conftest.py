@@ -124,13 +124,14 @@ def setup_test_environment():
 
 
 @pytest.fixture
-def mock_openai():
+def mock_zhipuai():
     """
-    Mock OpenAI client for testing without actual API calls.
+    Mock ZhipuAI client for testing without actual API calls.
 
-    Returns a MagicMock that simulates OpenAI chat completions API responses.
+    This fixture matches the real ZhipuAI SDK usage pattern.
+    Returns a MagicMock that simulates ZhipuAI chat completions API responses.
     """
-    with patch("openai.OpenAI") as mock_client_class:
+    with patch("zhipuai.ZhipuAI") as mock_client_class:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
