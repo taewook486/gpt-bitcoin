@@ -1,0 +1,1 @@
+# Characterization test package initialization

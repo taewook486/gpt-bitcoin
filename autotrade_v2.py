@@ -5,7 +5,7 @@ import pyupbit
 import pandas as pd
 import pandas_ta as ta
 import json
-from openai import OpenAI
+from zhipuai import ZhipuAI
 import schedule
 import time
 import requests
@@ -13,7 +13,7 @@ from datetime import datetime
 import sqlite3
 
 # Setup
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = ZhipuAI(api_key=os.getenv("ZHIPUAI_API_KEY"))
 upbit = pyupbit.Upbit(os.getenv("UPBIT_ACCESS_KEY"), os.getenv("UPBIT_SECRET_KEY"))
 
 def initialize_db(db_path='trading_decisions.sqlite'):
@@ -219,7 +219,7 @@ def get_instructions(file_path):
     except Exception as e:
         print("An error occurred while reading the file:", e)
 
-def analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed, current_status):
+def analyze_data_with_glm(news_data, data_json, last_decisions, fear_and_greed, current_status):
     instructions_path = "instructions_v2.md"
     try:
         instructions = get_instructions(instructions_path)
@@ -228,7 +228,7 @@ def analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed,
             return None
         
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="glm-5",
             messages=[
                 {"role": "system", "content": instructions},
                 {"role": "user", "content": news_data},
@@ -242,7 +242,7 @@ def analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed,
         advice = response.choices[0].message.content
         return advice
     except Exception as e:
-        print(f"Error in analyzing data with GPT-4: {e}")
+        print(f"Error in analyzing data with GLM-5: {e}")
         return None
 
 def execute_buy(percentage):
@@ -284,7 +284,7 @@ def make_decision_and_execute():
         decision = None
         for attempt in range(max_retries):
             try:
-                advice = analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed, current_status)
+                advice = analyze_data_with_glm(news_data, data_json, last_decisions, fear_and_greed, current_status)
                 decision = json.loads(advice)
                 break
             except json.JSONDecodeError as e:

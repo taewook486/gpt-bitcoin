@@ -5,7 +5,7 @@ import pyupbit
 import pandas as pd
 import pandas_ta as ta
 import json
-from openai import OpenAI
+from zhipuai import ZhipuAI
 import schedule
 import time
 import requests
@@ -19,7 +19,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import base64
 
 # Setup
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = ZhipuAI(api_key=os.getenv("ZHIPUAI_API_KEY"))
 upbit = pyupbit.Upbit(os.getenv("UPBIT_ACCESS_KEY"), os.getenv("UPBIT_SECRET_KEY"))
 
 def initialize_db(db_path='trading_decisions.sqlite'):
@@ -280,7 +280,7 @@ def get_instructions(file_path):
     except Exception as e:
         print("An error occurred while reading the file:", e)
 
-def analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed, current_status, current_base64_image):
+def analyze_data_with_glm(news_data, data_json, last_decisions, fear_and_greed, current_status, current_base64_image):
     instructions_path = "instructions_v3.md"
     try:
         instructions = get_instructions(instructions_path)
@@ -289,22 +289,24 @@ def analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed,
             return None
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="glm-4.6v",
             messages=[
                 {"role": "system", "content": instructions},
-                {"role": "user", "content": news_data},
-                {"role": "user", "content": data_json},
-                {"role": "user", "content": last_decisions},
-                {"role": "user", "content": fear_and_greed},
-                {"role": "user", "content": current_status},
-                {"role": "user", "content": [{"type": "image_url","image_url": {"url": f"data:image/jpeg;base64,{current_base64_image}"}}]}
+                {"role": "user", "content": [
+                    {"type": "text", "text": news_data},
+                    {"type": "text", "text": data_json},
+                    {"type": "text", "text": last_decisions},
+                    {"type": "text", "text": fear_and_greed},
+                    {"type": "text", "text": current_status},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{current_base64_image}"}}
+                ]}
             ],
             response_format={"type":"json_object"}
         )
         advice = response.choices[0].message.content
         return advice
     except Exception as e:
-        print(f"Error in analyzing data with GPT-4: {e}")
+        print(f"Error in analyzing data with GLM-4.6v: {e}")
         return None
 
 def execute_buy(percentage):
@@ -347,7 +349,7 @@ def make_decision_and_execute():
         decision = None
         for attempt in range(max_retries):
             try:
-                advice = analyze_data_with_gpt4(news_data, data_json, last_decisions, fear_and_greed, current_status, current_base64_image)
+                advice = analyze_data_with_glm(news_data, data_json, last_decisions, fear_and_greed, current_status, current_base64_image)
                 decision = json.loads(advice)
                 break
             except Exception as e:

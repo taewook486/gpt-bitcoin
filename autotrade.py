@@ -5,12 +5,12 @@ import pyupbit
 import pandas as pd
 import pandas_ta as ta
 import json
-from openai import OpenAI
+from zhipuai import ZhipuAI
 import schedule
 import time
 
 # Setup
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = ZhipuAI(api_key=os.getenv("ZHIPUAI_API_KEY"))
 upbit = pyupbit.Upbit(os.getenv("UPBIT_ACCESS_KEY"), os.getenv("UPBIT_SECRET_KEY"))
 
 def get_current_status():
@@ -89,7 +89,7 @@ def get_instructions(file_path):
     except Exception as e:
         print("An error occurred while reading the file:", e)
 
-def analyze_data_with_gpt4(data_json):
+def analyze_data_with_glm(data_json):
     instructions_path = "instructions.md"
     try:
         instructions = get_instructions(instructions_path)
@@ -99,7 +99,7 @@ def analyze_data_with_gpt4(data_json):
 
         current_status = get_current_status()
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="glm-5",
             messages=[
                 {"role": "system", "content": instructions},
                 {"role": "user", "content": data_json},
@@ -109,7 +109,7 @@ def analyze_data_with_gpt4(data_json):
         )
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Error in analyzing data with GPT-4: {e}")
+        print(f"Error in analyzing data with GLM-5: {e}")
         return None
 
 def execute_buy():
@@ -136,7 +136,7 @@ def execute_sell():
 def make_decision_and_execute():
     print("Making decision and executing...")
     data_json = fetch_and_prepare_data()
-    advice = analyze_data_with_gpt4(data_json)
+    advice = analyze_data_with_glm(data_json)
 
     try:
         decision = json.loads(advice)
