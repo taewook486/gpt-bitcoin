@@ -1,29 +1,33 @@
-# OpenTelemetry Tracing Configuration
-# Configure distributed tracing for application
+"""
+OpenTelemetry Observability Configuration.
 
-import os
+This module provides distributed tracing and metrics collection
+for the GPT Bitcoin Auto-Trading System.
+"""
+
+from __future__ import annotations
+
+import logging
 from typing import Any
 
 from opentelemetry import trace, metrics
- set_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
     ConsoleSpanExporter,
+    SimpleSpanProcessor,
 )
- SimpleSpanProcessor,
-)
- from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     ConsoleMetricExporter,
     InMemoryMetricReader,
 )
 
- PrometheusMetricReader,
-)
+logger = logging.getLogger(__name__)
 
-# Global tracer provider
-_tracer_provider: TracerProvider | None
-_global_meter_provider: MeterProvider | None
+# Global tracer and meter providers
+_tracer_provider: TracerProvider | None = None
+_global_meter_provider: MeterProvider | None = None
 
 
 def get_tracer() -> TracerProvider:
@@ -31,33 +35,24 @@ def get_tracer() -> TracerProvider:
     Get or create the global tracer provider.
 
     Returns:
-            The-configured TracerProvider instance with console exporter
-        """
-        global _tracer_provider
-        if _tracer_provider is None:
-            # Configure trace export
-            trace.set_tracer_provider(TracerProvider())
-            tracer = trace.get_tracer(__name__)
+        The configured TracerProvider instance with console exporter
+    """
+    global _tracer_provider
+    if _tracer_provider is None:
+        # Configure trace export
+        _tracer_provider = TracerProvider()
+        trace.set_tracer_provider(_tracer_provider)
 
-            # Add console exporter for development
-            tracer.add_span_processor(ConsoleSpanExporter())
+        # Add console exporter for development
+        processor = SimpleSpanProcessor(ConsoleSpanExporter())
+        _tracer_provider.add_span_processor(processor)
 
-            # Configure metrics
-            get_meter_provider()
+        # Configure metrics
+        get_meter_provider()
 
-            # Set as global provider
-            if _global_meter_provider is None:
-                _global_meter_provider = MeterProvider()
-                metrics.set_meter_provider(_global_meter_provider)
-                # Add console exporter
-                _global_meter_provider.meter_provider.add_metric_reader(PrometheusMetricReader())
-                # Add console exporter for metrics
-                _global_meter_provider.meter_provider.add_metric_reader(ConsoleMetricExporter())
+        logger.info("Tracer provider initialized with console exporter")
 
-        return _tracer_provider
-
-    _tracer_provider = tracer
-    _global_meter_provider = _global_meter_provider
+    return _tracer_provider
 
 
 def get_meter_provider() -> MeterProvider:
@@ -65,30 +60,28 @@ def get_meter_provider() -> MeterProvider:
     Get or create the global meter provider.
 
     Returns:
-            Type-configured MeterProvider instance with console exporter
-        """
-        global _global_meter_provider
-        if _global_meter_provider is None:
-            # Configure metrics export
-            metrics.set_meter_provider(MeterProvider())
-            provider = metrics.get_meter_provider()
+        The configured MeterProvider instance with console exporter
+    """
+    global _global_meter_provider
+    if _global_meter_provider is None:
+        # Configure metrics export
+        _global_meter_provider = MeterProvider()
+        metrics.set_meter_provider(_global_meter_provider)
 
-            # Add Prometheus reader (for production monitoring)
-            provider.add_metric_reader(PrometheusMetricReader())
+        # Add console exporter for development
+        reader = InMemoryMetricReader()
+        _global_meter_provider.add_metric_reader(reader)
 
-            # Add console exporter (for development)
-            provider.add_metric_reader(ConsoleMetricExporter())
-
-        return _global_meter_provider
+        logger.info("Meter provider initialized with console exporter")
 
     return _global_meter_provider
 
 
 def configure_telemetry(
-    service_name: str = "Gpt Bitcoin Auto-Trading System",
+    service_name: str = "gpt-bitcoin-auto-trading",
     log_level: str = "INFO",
-    otlp_endpoint: str | None,
-) -> TracerProvider:
+    otlp_endpoint: str | None = None,
+) -> tuple[TracerProvider, MeterProvider]:
     """
     Configure OpenTelemetry for the application.
 
@@ -96,57 +89,56 @@ def configure_telemetry(
         service_name: Name of the service for tracing
         log_level: Log level (DEBUG, INFO, WARNING, ERROR)
         otlp_endpoint: OTLP collector endpoint (optional, for production)
+
+    Returns:
+        Tuple of (tracer_provider, meter_provider)
     """
     tracer = get_tracer()
     meter = get_meter_provider()
 
-    # Set service name
-    tracer.resource.name = service_name
+    # Set service name resource attribute
+    if hasattr(tracer.resource, 'attributes'):
+        tracer.resource.attributes["service.name"] = service_name
 
-    # Configure OTLP exporter if endpoint provided
-    if otlp_endpoint:
-        tracer.add_span_processor(
-            BatchSpanProcessor(otlp_endpoint)
-        )
+    logger.info(
+        "Telemetry configured",
+        extra={"service_name": service_name, "log_level": log_level}
+    )
 
     return tracer, meter
 
 
-def create_metrics() -> dict[str, metrics.Counter]:
+def create_metrics() -> dict[str, Any]:
     """
     Create standard application metrics.
 
     Returns:
-            Dictionary of metric counters
+        Dictionary of metric instruments
     """
     meter = get_meter_provider()
 
     # Request counter
     request_counter = meter.create_counter(
-        name="http.requests",
+        name="http_requests_total",
         description="Total HTTP requests",
-        unit="1",
     )
 
     # Error counter
     error_counter = meter.create_counter(
-        name="http.errors",
+        name="http_errors_total",
         description="Total HTTP errors",
-        unit="1",
     )
 
-    # Trading counter
+    # Trading decision counter
     trading_counter = meter.create_counter(
-        name="trading.decisions",
+        name="trading_decisions_total",
         description="Total trading decisions",
-        unit="1",
     )
 
     # API latency histogram
     api_latency = meter.create_histogram(
-        name="api.latency",
-        description="API call latency",
-        unit="ms",
+        name="api_latency_seconds",
+        description="API call latency in seconds",
     )
 
     return {
@@ -155,25 +147,6 @@ def create_metrics() -> dict[str, metrics.Counter]:
         "trading": trading_counter,
         "latency": api_latency,
     }
-
-
-def record_span(
-    tracer: TracerProvider,
-    name: str,
-    attributes: dict[str, Any] | None,
-) -> None:
-    """
-    Create and record a tracing span.
-
-    Args:
-        tracer: Tracer provider instance
-        name: Span name
-        attributes: Additional span attributes
-    """
-    span = tracer.start_span(name)
-    for key, value in (attributes or {}).items():
-        span.set_attribute(key, value)
-    return span
 
 
 class HealthChecker:
@@ -191,13 +164,20 @@ class HealthChecker:
         check_external_apis: bool = True,
         timeout_seconds: float = 5.0,
     ) -> None:
+        """
+        Initialize health checker.
+
+        Args:
+            check_external_apis: Whether to check external API connectivity
+            timeout_seconds: Timeout for health checks
+        """
         self.check_external_apis = check_external_apis
         self.timeout_seconds = timeout_seconds
-        self._metrics = create_metrics()
         self._is_healthy = True
 
-        # Record health check metrics
-        self._metrics["health.checks"].add(1, {"status": "initialized"})
+        # Create metrics for health checks
+        self._metrics = create_metrics()
+        self._metrics["trading"].add(1, {"status": "initialized"})
 
     async def check_health(self) -> dict[str, Any]:
         """
@@ -206,26 +186,27 @@ class HealthChecker:
         Returns:
             Dictionary with health status information
         """
-        tracer = get_tracer()
-        with tracer.start_as_active_span("health.check"):
-            span = await self._check_application_health()
-            span.set_attribute("check.type", "application")
-            span.set_attribute("status", "healthy" if self._is_healthy else "unhealthy")
+        app_healthy = await self._check_application_health()
+        api_healthy = await self._check_external_api_connectivity()
 
-            return {
-                "status": "healthy" if self._is_healthy else "unhealthy",
-                "checks": {
-                    "application": self._is_healthy,
-                    "external_apis": await self._check_external_api_connectivity()
-                    if self.check_external_apis
-                    else True,
-                },
-                "timestamp": span.end_time,
-            }
+        self._is_healthy = app_healthy and api_healthy
+
+        return {
+            "status": "healthy" if self._is_healthy else "unhealthy",
+            "checks": {
+                "application": app_healthy,
+                "external_apis": api_healthy,
+            },
+        }
 
     async def _check_application_health(self) -> bool:
         """Check application internal health."""
-        return True
+        try:
+            # Basic application health check
+            return True
+        except Exception as e:
+            logger.error(f"Application health check failed: {e}")
+            return False
 
     async def _check_external_api_connectivity(self) -> bool:
         """Check connectivity to external APIs (Upbit, GLM)."""
@@ -237,14 +218,32 @@ class HealthChecker:
         return True
 
 
-def create_health_check_endpoint() -> HealthChecker:
+def create_health_checker(
+    check_external_apis: bool = True,
+    timeout_seconds: float = 5.0,
+) -> HealthChecker:
     """
-    Create and configure health check endpoint.
+    Create and configure health checker.
+
+    Args:
+        check_external_apis: Whether to check external API connectivity
+        timeout_seconds: Timeout for health checks
 
     Returns:
         Configured HealthChecker instance
     """
     return HealthChecker(
-        check_external_apis=True,
-        timeout_seconds=5.0,
+        check_external_apis=check_external_apis,
+        timeout_seconds=timeout_seconds,
     )
+
+
+# Export main functions
+__all__ = [
+    "get_tracer",
+    "get_meter_provider",
+    "configure_telemetry",
+    "create_metrics",
+    "create_health_checker",
+    "HealthChecker",
+]

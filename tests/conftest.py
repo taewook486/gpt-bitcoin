@@ -156,6 +156,38 @@ def mock_zhipuai():
 
 
 @pytest.fixture
+def mock_openai():
+    """
+    Mock OpenAI client for testing without actual API calls.
+
+    This fixture provides a basic mock that returns a hold decision.
+    Use mock_openai_buy_decision or mock_openai_sell_decision for specific responses.
+    """
+    with patch("openai.OpenAI") as mock_client_class:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        # Default mock response for chat completions (hold decision)
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(
+                message=MagicMock(
+                    content=json.dumps(
+                        {
+                            "decision": "hold",
+                            "percentage": 0,
+                            "reason": "Test response from mock",
+                        }
+                    )
+                )
+            )
+        ]
+        mock_client.chat.completions.create.return_value = mock_response
+
+        yield mock_client
+
+
+@pytest.fixture
 def mock_openai_buy_decision():
     """
     Mock OpenAI client that returns a buy decision.
