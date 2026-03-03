@@ -238,12 +238,45 @@ def create_health_checker(
     )
 
 
+# Import Prometheus exporter
+from gpt_bitcoin.infrastructure.observability.prometheus_exporter import (
+    PrometheusConfig,
+    PrometheusMetricsServer,
+    get_metrics_server,
+    start_prometheus_server,
+)
+
+# Import trading metrics
+from gpt_bitcoin.infrastructure.observability.trading_metrics import (
+    TradingMetrics,
+    TradingMetricsConfig,
+    get_trading_metrics,
+    track_glm_api_call,
+    track_upbit_api_call,
+    track_trading_decision,
+    update_portfolio_value,
+)
+
 # Export main functions
 __all__ = [
+    # OpenTelemetry
     "get_tracer",
     "get_meter_provider",
     "configure_telemetry",
     "create_metrics",
     "create_health_checker",
     "HealthChecker",
+    # Prometheus
+    "PrometheusConfig",
+    "PrometheusMetricsServer",
+    "get_metrics_server",
+    "start_prometheus_server",
+    # Trading Metrics
+    "TradingMetrics",
+    "TradingMetricsConfig",
+    "get_trading_metrics",
+    "track_glm_api_call",
+    "track_upbit_api_call",
+    "track_trading_decision",
+    "update_portfolio_value",
 ]

@@ -35,6 +35,37 @@ from gpt_bitcoin.infrastructure.logging import get_logger
 logger = get_logger(__name__)
 
 
+# Cost tracking imports (optional)
+try:
+    from gpt_bitcoin.infrastructure.monitoring.cost_tracker import (
+        CostTracker,
+        CostTrackerConfig,
+        get_cost_tracker,
+    )
+
+    _cost_tracker: CostTracker | None = None
+    _cost_tracker_initialized: bool = False
+except ImportError:
+    _cost_tracker = None
+    _cost_tracker_initialized = False
+    logger.debug("Cost tracker not available")
+
+
+# Cost tracking imports (optional)
+try:
+    from gpt_bitcoin.infrastructure.monitoring.cost_tracker import (
+        CostTracker,
+        CostTrackerConfig,
+        get_cost_tracker,
+    )
+    _cost_tracker: CostTracker | None = None
+    _cost_tracker_initialized: bool = False
+except ImportError:
+    _cost_tracker = None
+    _cost_tracker_initialized = False
+    logger.debug("Cost tracker not available")
+
+
 # =============================================================================
 # Pydantic Models for Structured Outputs
 # =============================================================================
@@ -223,6 +254,18 @@ class GLMClient:
         )
         self._max_retries = max_retries
 
+        # Initialize cost tracker (optional)
+        global _cost_tracker, _cost_tracker_initialized
+        if _cost_tracker is not None and not _cost_tracker_initialized:
+            try:
+                config = CostTrackerConfig(database_path="data/glm_usage.db")
+                _cost_tracker = get_cost_tracker(config)
+                _cost_tracker_initialized = True
+                logger.debug("Cost tracker initialized for GLM client")
+            except Exception as e:
+                logger.warning(f"Failed to initialize cost tracker: {e}")
+                _cost_tracker = None
+
         logger.info(
             "GLM client initialized",
             text_model=self._settings.glm_text_model,
@@ -386,6 +429,18 @@ class GLMClient:
                 completion_tokens=usage.completion_tokens if usage else 0,
                 total_tokens=usage.total_tokens if usage else 0,
             )
+
+            # Track cost with cost tracker (optional)
+            if _cost_tracker is not None and usage:
+                try:
+                    await _cost_tracker.log_usage(
+                        model=model,
+                        prompt_tokens=usage.prompt_tokens,
+                        completion_tokens=usage.completion_tokens,
+                        metadata={"latency_ms": str(latency_ms)},
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to log usage to cost tracker: {e}")
 
             logger.info(
                 "GLM API call successful",

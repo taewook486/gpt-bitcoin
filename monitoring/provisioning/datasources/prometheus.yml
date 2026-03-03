@@ -1,0 +1,31 @@
+# Grafana Datasource Provisioning Configuration
+# Auto-configures Prometheus datasource on Grafana startup
+
+apiVersion: 1
+
+# Delete datasources that are not defined in this file
+deleteDatasources: []
+
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: true
+    version: 1
+    editable: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: "2.48.0"
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      disableRecordingRules: false
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo
+    uid: prometheus
