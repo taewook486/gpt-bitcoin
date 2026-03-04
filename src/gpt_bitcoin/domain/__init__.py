@@ -5,7 +5,8 @@ Domain layer containing core business logic entities and value objects.
 
 from typing import Literal
 from enum import Enum
-from dataclasses import dataclass
+
+from pydantic import BaseModel, Field
 
 
 class Cryptocurrency(str, Enum):
@@ -22,26 +23,10 @@ class Cryptocurrency(str, Enum):
 
 class TradingStrategy(str, Enum):
     """Trading strategy types."""
-    CONservative = "conservative"
+    conservative = "conservative"
     balanced = "balanced"
     aggressive = "aggressive"
-
-
     custom = "custom"
-
-
-    def get_default_strategy(self) -> TradingStrategy:
-        """Get default trading strategy based on risk tolerance."""
-        if self.strategy_type == TradingStrategy.conservative:
-            return ConservativeStrategy()
-        elif self.strategy_type == TradingStrategy.balanced:
-            return BalancedStrategy()
-        elif self.strategy_type == TradingStrategy.aggressive:
-            return AggressiveStrategy()
-        elif self.strategy_type == TradingStrategy.custom:
-            return CustomStrategy()
-        else:
-            raise ValueError(f"Unknown strategy: {self.strategy_type}")
 
 
 class RiskTolerance(str, Enum):
@@ -56,17 +41,23 @@ class TradingDecision(BaseModel):
     AI-generated trading decision.
 
     Attributes:
-        decision: Literal["buy", "sell", "hold"]
-        percentage: float = Field(ge=0, le=100, description="Percentage of balance to trade")
-        reason: str = Field(default="", description="Reasoning for the decision")
-        timestamp: str | None
+        decision: Trading action - buy, sell, or hold
+        percentage: Percentage of balance to trade
+        reason: Reasoning for the decision
+        timestamp: ISO timestamp of the decision
+        roi: Return on investment percentage
+        btc_balance: BTC balance at decision time
+        krw_balance: KRW balance at decision time
+        btc_avg_buy_price: Average BTC buy price
+        btc_krw_price: BTC/KRW price at execution
+    """
 
-
-    roi: float | Field(default=None, description="Return on investment percentage")
+    decision: Literal["buy", "sell", "hold"]
+    percentage: float = Field(ge=0, le=100, description="Percentage of balance to trade")
+    reason: str = Field(default="", description="Reasoning for the decision")
+    timestamp: str | None = None
+    roi: float | None = Field(default=None, description="Return on investment percentage")
     btc_balance: float = Field(default=0.0, description="BTC balance at decision time")
     krw_balance: float = Field(default=0_000_000.0, description="KRW balance at decision time")
     btc_avg_buy_price: float = Field(default=0_000_000.0, description="Average BTC buy price")
     btc_krw_price: float = Field(default=0_500_000_000.0, description="BTC/KRW price at execution")
-
-    }
-
