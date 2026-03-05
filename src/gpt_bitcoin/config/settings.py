@@ -5,10 +5,11 @@ This module provides centralized configuration with environment variable support
 and validation.
 """
 
-from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from gpt_bitcoin.domain.security import SecuritySettingsModel
 
 
 class Settings(BaseSettings):
@@ -38,6 +39,10 @@ class Settings(BaseSettings):
     serpapi_api_key: str = Field(default="", description="SerpApi API key (optional)")
 
     # Trading settings
+    testnet_mode: bool = Field(
+        default=False,
+        description="Enable testnet mode (uses MockUpbitClient instead of real API)",
+    )
     trading_percentage: float = Field(
         default=100.0,
         ge=0,
@@ -103,6 +108,12 @@ class Settings(BaseSettings):
         default=5,
         ge=1,
         description="Delay between retry attempts",
+    )
+
+    # Security settings (2FA, trading limits)
+    security: SecuritySettingsModel = Field(
+        default_factory=SecuritySettingsModel,
+        description="Security settings for 2FA and trading limits",
     )
 
     @field_validator("log_level")

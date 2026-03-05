@@ -199,6 +199,9 @@ class GLMClient:
     MODEL_TEXT = "glm-5"  # Text-only model
     MODEL_VISION = "glm-4.6v"  # Vision-capable model
 
+    # API Endpoint (Global)
+    BASE_URL = "https://api.z.ai/api/paas/v4/"  # Global endpoint
+
     def __init__(
         self,
         settings: Settings | None = None,
@@ -216,7 +219,13 @@ class GLMClient:
             max_retries: Maximum retry attempts for failed calls
         """
         self._settings = settings or get_settings()
-        self._client = ZhipuAI(api_key=self._settings.zhipuai_api_key)
+        # Always use global endpoint
+        base_url = self.BASE_URL
+
+        self._client = ZhipuAI(
+            api_key=self._settings.zhipuai_api_key,
+            base_url=base_url,
+        )
         self._rate_limiter = RateLimiter(
             requests_per_minute=requests_per_minute,
             tokens_per_minute=tokens_per_minute,
@@ -227,6 +236,7 @@ class GLMClient:
             "GLM client initialized",
             text_model=self._settings.glm_text_model,
             vision_model=self._settings.glm_vision_model,
+            base_url=base_url,
         )
 
     async def analyze_text(

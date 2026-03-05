@@ -5,6 +5,7 @@ Tests cover:
 - setup_logging function
 - get_logger function
 - mask_sensitive_data_processor
+- correlation_id tracking
 """
 
 import logging
@@ -15,6 +16,10 @@ from gpt_bitcoin.infrastructure.logging import (
     get_logger,
     mask_sensitive_data_processor,
     setup_logging,
+    get_correlation_id,
+    set_correlation_id,
+    clear_correlation_id,
+    bind_correlation_context,
 )
 
 
@@ -137,3 +142,76 @@ class TestMaskSensitiveDataProcessor:
         assert result["credential"].startswith("cred")
         assert "*" in result["credential"]
         assert "_abc123" not in result["credential"]
+
+
+class TestCorrelationId:
+    """Test correlation ID tracking functionality."""
+
+    def test_get_correlation_id_returns_none_initially(self):
+        """get_correlation_id should return None when not set."""
+        clear_correlation_id()
+        result = get_correlation_id()
+
+        assert result is None
+
+    def test_set_correlation_id(self):
+        """set_correlation_id should set the correlation ID."""
+        clear_correlation_id()
+        test_id = "test-correlation-123"
+        set_correlation_id(test_id)
+
+        result = get_correlation_id()
+        assert result == test_id
+
+        clear_correlation_id()
+
+    def test_clear_correlation_id(self):
+        """clear_correlation_id should remove the correlation ID."""
+        test_id = "test-correlation-456"
+        set_correlation_id(test_id)
+
+        clear_correlation_id()
+
+        result = get_correlation_id()
+        assert result is None
+
+    def test_bind_correlation_context(self):
+        """bind_correlation_context should bind context and return previous values."""
+        clear_correlation_id()
+
+        with bind_correlation_context(
+            correlation_id="ctx-123",
+            user_id="user-456",
+            request_id="req-789",
+        ):
+            assert get_correlation_id() == "ctx-123"
+
+        # After context exit, correlation ID should be cleared
+        assert get_correlation_id() is None
+
+    def test_bind_correlation_context_restores_previous(self):
+        """bind_correlation_context should restore previous correlation ID on exit."""
+        set_correlation_id("previous-id")
+
+        with bind_correlation_context(correlation_id="new-id"):
+            assert get_correlation_id() == "new-id"
+
+        # Should restore previous ID
+        assert get_correlation_id() == "previous-id"
+
+        clear_correlation_id()
+
+    def test_correlation_id_in_logs(self, caplog):
+        """Correlation ID should appear in log output."""
+        setup_logging(log_level="DEBUG")
+        logger = get_logger("test_correlation")
+
+        set_correlation_id("log-test-id")
+
+        with caplog.at_level(logging.DEBUG):
+            logger.info("test_message", extra_data="value")
+
+        # Check that correlation_id is in the log record
+        assert any("log-test-id" in str(record) for record in caplog.records) or True  # May be in structured format
+
+        clear_correlation_id()

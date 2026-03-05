@@ -22,16 +22,18 @@ Example:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from dependency_injector import containers, providers
 
 from gpt_bitcoin.config.settings import Settings, get_settings
+from gpt_bitcoin.domain.testnet_config import TestnetConfig
+from gpt_bitcoin.domain.trading import TradingService
+from gpt_bitcoin.domain.security import SecurityService
 from gpt_bitcoin.infrastructure.external.glm_client import GLMClient
+from gpt_bitcoin.infrastructure.external.mock_upbit_client import MockUpbitClient
 from gpt_bitcoin.infrastructure.external.upbit_client import UpbitClient
-
-if TYPE_CHECKING:
-    pass
+from gpt_bitcoin.infrastructure.persistence.audit_repository import (
+    SQLiteAuditRepository,
+)
 
 
 class Container(containers.DeclarativeContainer):
@@ -61,6 +63,7 @@ class Container(containers.DeclarativeContainer):
     # =========================================================================
 
     # GLM client - Singleton to reuse rate limiter state
+    # Always uses global endpoint: https://api.z.ai/api/paas/v4/
     glm_client: providers.Provider[GLMClient] = providers.Singleton(
         GLMClient,
         settings=settings,
@@ -72,15 +75,71 @@ class Container(containers.DeclarativeContainer):
         settings=settings,
     )
 
+    # MockUpbitClient for testnet simulation
+    mock_upbit_client: providers.Provider[MockUpbitClient] = providers.Factory(
+        MockUpbitClient,
+        config=providers.Singleton(TestnetConfig),
+    )
+
+    # @MX:ANCHOR: mode_aware_upbit_client
+    # @MX:REASON: TestnetMode에 따라 적절한 클라이언트를 선택하는 중앙 진입점
+    # fan_in: 3+ (trading_service, tests, main.py)
+    def _get_mode_aware_client(settings: Settings) -> UpbitClient | MockUpbitClient:
+        """
+        Get the appropriate upbit client based on testnet mode.
+
+        @MX:NOTE: testnet_mode가 True이면 MockUpbitClient, 아니면 UpbitClient 반환
+
+        Args:
+            settings: Application settings
+
+        Returns:
+            MockUpbitClient if testnet_mode is True, otherwise UpbitClient
+        """
+        if settings.testnet_mode:
+            return MockUpbitClient()
+        return UpbitClient(settings)
+
+    mode_aware_upbit_client: providers.Provider[UpbitClient | MockUpbitClient] = providers.Factory(
+        _get_mode_aware_client,
+        settings=settings,
+    )
+
     # =========================================================================
-    # Domain Services (Future)
+    # Infrastructure - Persistence
     # =========================================================================
 
-    # These will be added as domain services are implemented:
-    # - MarketDataService
-    # - NewsService
-    # - TradingService
-    # - DecisionService
+    # Audit repository - Singleton for shared database connection
+    # @MX:ANCHOR: audit_repository
+    # @MX:REASON: 감사 로그 저장소의 중앙 진입점
+    # fan_in: 3+ (SecurityService, main.py, web_ui.py)
+    audit_repository: providers.Provider[SQLiteAuditRepository] = providers.Singleton(
+        SQLiteAuditRepository,
+        settings=settings,
+    )
+
+    # =========================================================================
+    # Domain Services
+    # =========================================================================
+
+    # @MX:NOTE: TradingService is stateful, so Factory is used instead of Singleton.
+    # Each call gets a fresh instance with clean state.
+    trading_service: providers.Provider[TradingService] = providers.Factory(
+        TradingService,
+        upbit_client=upbit_client,
+        settings=settings,
+    )
+
+    # @MX:ANCHOR: SecurityService
+    # @MX:REASON: 2FA 및 거래 한도를 적용하는 보안 래퍼
+    # fan_in: 2+ (main.py, web_ui.py)
+    # @MX:NOTE: Factory를 사용하여 매 요청마다 새 인스턴스 생성 (세션 상태 관리)
+    security_service: providers.Provider[SecurityService] = providers.Factory(
+        SecurityService,
+        trading_service=trading_service,
+        settings=settings,
+        audit_repository=audit_repository,
+    )
 
 
 # =============================================================================

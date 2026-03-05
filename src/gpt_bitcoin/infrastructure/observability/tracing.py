@@ -25,10 +25,39 @@ from opentelemetry.sdk.metrics.export import (
     InMemoryMetricReader,
 )
 from opentelemetry.sdk.resources import Resource
+import contextvars
 
 # Global tracer provider
 _tracer_provider: TracerProvider | None = None
 _global_meter_provider: MeterProvider | None = None
+
+# Correlation ID context variable
+_correlation_id_context: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "correlation_id",
+    default="",
+)
+
+
+def set_correlation_id(correlation_id: str) -> None:
+    """
+    Set the correlation ID for the current context.
+
+    Args:
+        correlation_id: Unique identifier for this request/session
+
+    @MX:NOTE: Used for tracking requests across distributed systems.
+    """
+    _correlation_id_context.set(correlation_id)
+
+
+def get_correlation_id() -> str:
+    """
+    Get the current correlation ID.
+
+    Returns:
+        The correlation ID for the current context, or empty string if not set
+    """
+    return _correlation_id_context.get("")
 
 
 def setup_tracing(
