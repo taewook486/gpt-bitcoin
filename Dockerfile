@@ -21,10 +21,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 # Copy dependency files
 COPY pyproject.toml ./
+COPY src/ ./src/
 # Install dependencies with pip cache mounted from builder stage
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -e .
+    pip install --no-cache-dir .
 
 # Stage 2: Runtime
 FROM python:3.11-slim AS runtime
@@ -40,8 +40,8 @@ RUN groupadd -r appgroup -g 1001 appuser && \
     useradd -r appuser -u 1001 -g appgroup && \
     chown -R appuser:appgroup /app
 # Copy installed packages from builder stage
-COPY --from=builder /root/.cache/pip /root/.cache/pip
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY --chown=appuser:appgroup src/ /app/src
 # Switch to non-root user

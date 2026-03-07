@@ -1,9 +1,11 @@
 """
-Application Layer Module.
+Application layer for GPT Bitcoin trading system.
 
-This module provides application-level services including
-cost optimization and business logic coordination.
+This module contains application-level services and orchestrators
+that coordinate between domain and infrastructure layers.
 """
+
+from gpt_bitcoin.application.scheduler import AsyncScheduler, fetch_all_data_parallel
 from gpt_bitcoin.application.cost_optimization import (
     CostOptimizer,
     CostOptimizationConfig,
@@ -17,6 +19,10 @@ from gpt_bitcoin.application.cost_optimization import (
 )
 
 __all__ = [
+    # Scheduler
+    "AsyncScheduler",
+    "fetch_all_data_parallel",
+    # Cost Optimization
     "CostOptimizer",
     "CostOptimizationConfig",
     "CacheEntry",

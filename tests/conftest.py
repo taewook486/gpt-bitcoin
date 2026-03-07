@@ -99,6 +99,7 @@ def setup_test_environment():
         "OPENAI_API_KEY": "test-openai-key-12345",
         "UPBIT_ACCESS_KEY": "test-upbit-access-key",
         "UPBIT_SECRET_KEY": "test-upbit-secret-key",
+        "ZHIPUAI_API_KEY": "test-zhipuai-key",
         "SERPAPI_API_KEY": "test-serpapi-key",
     }
 
