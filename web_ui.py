@@ -131,7 +131,7 @@ if not st.session_state.pin_verified and "pin_auto_checked" not in st.session_st
         container = get_container()
         security_service = container.security_service()
         import asyncio
-        if asyncio.run(security_service.is_pin_set()):
+        if security_service.is_pin_set():
             st.session_state.pin_verified = True
         st.session_state.pin_auto_checked = True
     except Exception:
