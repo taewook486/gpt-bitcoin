@@ -390,7 +390,7 @@ def get_ai_recommendation(ticker: str, interval: str, strategy: TradingStrategy,
         base_instructions = instruction_manager.load(inst_file)
         if base_instructions is None:
             # Fallback to simple prompt if instructions file not found
-            base_instructions = "You are a cryptocurrency trading assistant."
+            base_instructions = "You are a cryptocurrency trading assistant. Please respond in Korean for the reason field."
 
         # Prepare analysis prompt with context
         context_addition = f"""
@@ -413,11 +413,12 @@ Respond ONLY with a JSON object wrapped in markdown code blocks:
 {{
     "decision": "buy" | "sell" | "hold",
     "percentage": <number 0-100>,
-    "reason": "<explanation>",
+    "reason": "<한국어로 설명해주세요 (explain in Korean)>",
     "confidence": <number 0-1>
 }}
 ```
 Do NOT include any other text outside the JSON code block.
+IMPORTANT: The 'reason' field MUST be in Korean.
 """
 
         system_prompt = base_instructions + context_addition
