@@ -306,6 +306,10 @@ class SecurityService:
 
         return True
 
+    def is_pin_set(self) -> bool:
+        """Check if PIN has been set up."""
+        return self.settings.security.pin_hash is not None and self.settings.security.pin_hash != ""
+
     def is_locked(self) -> bool:
         """Check if security module is currently locked."""
         if self.settings.security.locked_until is None:
