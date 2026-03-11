@@ -1,4 +1,4 @@
-# Docker Compose for GPT Bitcoin Auto-Trading System
+# Docker Compose for AI Cryptocurrency Auto-Trading System
 # Local development environment with optional production-like services
 #
 # Main application service
@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: gpt-bitcoin-app
+    container_name: ai-cryptocurrency-app
     ports:
       - "8000:8000"
     environment:
@@ -28,18 +28,18 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     networks:
-      - gpt-bitcoin-network
+      - ai-cryptocurrency-network
 
   # Redis cache (optional - for distributed caching)
   redis:
     image: redis:7-alpine
-    container_name: gpt-bitcoin-redis
+    container_name: ai-cryptocurrency-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
-      - gpt-bitcoin-network
+      - ai-cryptocurrency-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -51,118 +51,31 @@ services:
   # PostgreSQL database (optional - for persistent data)
   postgres:
     image: postgres:16-alpine
-    container_name: gpt-bitcoin-postgres
+    container_name: ai-cryptocurrency-postgres
     environment:
-      POSTGRES_DB: gpt_bitcoin
-      POSTGRES_USER: gpt_user
-      POSTGRES_PASSWORD: gpt_password
+      POSTGRES_DB: ai_cryptocurrency
+      POSTGRES_USER: ai_user
+      POSTGRES_PASSWORD: ai_password
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - gpt-bitcoin-network
+      - ai-cryptocurrency-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "gpt_user", "-d", "gpt_bitcoin", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready", "-U", "ai_user", "-d", "ai_cryptocurrency", "-h", "localhost"]
       interval: 30s
       timeout: 10s
       retries: 3
     profiles:
       - database
 
-  # Prometheus metrics collection (optional - for monitoring)
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: gpt-bitcoin-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--storage.tsdb.retention.time=15d'
-      - '--web.enable-lifecycle'
-    networks:
-      - gpt-bitcoin-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - monitoring
-    restart: unless-stopped
-
-  # AlertManager alert routing and notification (optional - for monitoring)
-  alertmanager:
-    image: prom/alertmanager:v0.26.0
-    container_name: gpt-bitcoin-alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager-data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://localhost:9093'
-      - '--cluster.listen-address='
-    networks:
-      - gpt-bitcoin-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - monitoring
-    restart: unless-stopped
-
-  # Grafana visualization (optional - for monitoring dashboards)
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: gpt-bitcoin-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
-      - GF_INSTALL_PLUGINS=redis-datasource
-    volumes:
-      - ./monitoring/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
-    networks:
-      - gpt-bitcoin-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - monitoring
-    restart: unless-stopped
-    depends_on:
-      prometheus:
-        condition: service_healthy
-      alertmanager:
-        condition: service_healthy
-
 networks:
-  gpt-bitcoin-network:
+  ai-cryptocurrency-network:
 
 volumes:
   redis-data:
   postgres-data:
-  prometheus-data:
-  grafana-data:
-  alertmanager-data:
 
 # Named profiles for different configurations
 profiles:

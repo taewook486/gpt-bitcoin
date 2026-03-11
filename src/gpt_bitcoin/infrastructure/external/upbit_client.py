@@ -397,6 +397,7 @@ class UpbitClient:
             "minute15": "minutes/15",
             "minute30": "minutes/30",
             "minute60": "minutes/60",
+            "minute240": "minutes/240",
             "week": "weeks",
             "month": "months",
         }

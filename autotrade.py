@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 import pyupbit
 import pandas as pd
-import pandas_ta as ta
+from ta.trend import EMAIndicator, SMAIndicator
+from ta.momentum import RSIIndicator, StochasticOscillator
 import json
 from zhipuai import ZhipuAI
 import schedule
@@ -39,15 +40,18 @@ def fetch_and_prepare_data():
     # Define a helper function to add indicators
     def add_indicators(df):
         # Moving Averages
-        df['SMA_10'] = ta.sma(df['close'], length=10)
-        df['EMA_10'] = ta.ema(df['close'], length=10)
+        df['SMA_10'] = SMAIndicator(close=df['close'], window=10).sma_indicator()
+        df['EMA_10'] = EMAIndicator(close=df['close'], window=10).ema_indicator()
 
         # RSI
-        df['RSI_14'] = ta.rsi(df['close'], length=14)
+        df['RSI_14'] = RSIIndicator(close=df['close'], window=14).rsi()
 
         # Stochastic Oscillator
-        stoch = ta.stoch(df['high'], df['low'], df['close'], k=14, d=3, smooth_k=3)
-        df = df.join(stoch)
+        _stoch = StochasticOscillator(
+            high=df['high'], low=df['low'], close=df['close'], window=14, smooth_window=3
+        )
+        df['STOCHk_14_3_3'] = _stoch.stoch()
+        df['STOCHd_14_3_3'] = _stoch.stoch_signal()
 
         # MACD
         ema_fast = df['close'].ewm(span=12, adjust=False).mean()

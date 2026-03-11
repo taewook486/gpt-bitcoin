@@ -1,5 +1,5 @@
 """
-GPT Bitcoin Auto-Trading System - Modern Entry Point
+AI Cryptocurrency Auto-Trading System - Modern Entry Point
 
 모듈형 아키텍처를 기반으로 한 최신 자동거래 시스템 진입점.
 
@@ -21,7 +21,7 @@ Usage:
     python main.py --list-coins
     python main.py --list-strategies
 
-Author: GPT Bitcoin Trading System
+Author: AI Cryptocurrency Trading System
 Version: 4.0.0
 """
 
@@ -70,7 +70,7 @@ console = Console()
 
 BANNER = """
 ============================================================
-  GPT Bitcoin Auto-Trading System v4.0
+  AI Cryptocurrency Auto-Trading System v4.0
   Modular Architecture with GLM-5/GLM-4.6V
 ============================================================
 """
@@ -805,7 +805,7 @@ Current Technical Indicators:
 def parse_arguments() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="GPT Bitcoin Auto-Trading System v4.0",
+        description="AI Cryptocurrency Auto-Trading System v4.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

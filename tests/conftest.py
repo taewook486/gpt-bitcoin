@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for GPT Bitcoin trading system tests.
+Pytest configuration and fixtures for AI Cryptocurrency trading system tests.
 
 This module provides mock fixtures for external APIs (OpenAI, Upbit, SerpApi)
 to enable isolated testing without actual API calls.
@@ -27,19 +27,8 @@ def install_module_mocks():
     """
     Install mock modules that may not be installed in the test environment.
 
-    This ensures tests can run without pandas_ta, selenium, etc.
+    This ensures tests can run without selenium, etc.
     """
-    # Mock pandas_ta
-    if "pandas_ta" not in sys.modules:
-        mock_ta = MagicMock()
-        mock_ta.sma.return_value = pd.Series([100.0] * 30)
-        mock_ta.ema.return_value = pd.Series([100.0] * 30)
-        mock_ta.rsi.return_value = pd.Series([50.0] * 30)
-        mock_ta.stoch.return_value = pd.DataFrame(
-            {"STOCHk_14_3_3": [50.0] * 30, "STOCHd_14_3_3": [50.0] * 30}
-        )
-        sys.modules["pandas_ta"] = mock_ta
-
     # Mock selenium
     if "selenium" not in sys.modules:
         mock_selenium = MagicMock()
@@ -137,38 +126,6 @@ def mock_zhipuai():
         mock_client_class.return_value = mock_client
 
         # Default mock response for chat completions
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(
-                message=MagicMock(
-                    content=json.dumps(
-                        {
-                            "decision": "hold",
-                            "percentage": 0,
-                            "reason": "Test response from mock",
-                        }
-                    )
-                )
-            )
-        ]
-        mock_client.chat.completions.create.return_value = mock_response
-
-        yield mock_client
-
-
-@pytest.fixture
-def mock_openai():
-    """
-    Mock OpenAI client for testing without actual API calls.
-
-    This fixture provides a basic mock that returns a hold decision.
-    Use mock_openai_buy_decision or mock_openai_sell_decision for specific responses.
-    """
-    with patch("openai.OpenAI") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        # Default mock response for chat completions (hold decision)
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(
@@ -491,9 +448,12 @@ def temp_db_path(tmp_path: Path):
     db_path = tmp_path / "test_trading_decisions.sqlite"
     yield str(db_path)
 
-    # Cleanup
+    # Cleanup (ignore PermissionError on Windows due to SQLite file locking)
     if db_path.exists():
-        db_path.unlink()
+        try:
+            db_path.unlink()
+        except PermissionError:
+            pass
 
 
 @pytest.fixture

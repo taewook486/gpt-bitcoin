@@ -2,7 +2,7 @@
 
 ## Project Description
 
-The GPT Bitcoin Auto-Trading System is an AI-powered cryptocurrency trading bot that leverages OpenAI's GPT-4o API to make automated trading decisions for Bitcoin (BTC) on the Upbit exchange. The system was created by YouTuber Jocoding (조코딩) and demonstrates the practical application of large language models in financial trading.
+The AI Cryptocurrency Auto-Trading System is an AI-powered cryptocurrency trading bot that leverages ZhipuAI's GLM-5/GLM-4.6V API to make automated trading decisions for various cryptocurrencies (BTC, ETH, SOL, XRP, ADA, DOGE, AVAX, DOT) on the Upbit exchange. The system demonstrates the practical application of large language models in financial trading.
 
 ## Core Purpose
 

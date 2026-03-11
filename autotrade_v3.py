@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 import pyupbit
 import pandas as pd
-import pandas_ta as ta
+from ta.trend import EMAIndicator, SMAIndicator
+from ta.momentum import RSIIndicator, StochasticOscillator
 import json
 from zhipuai import ZhipuAI
 import schedule
@@ -125,15 +126,18 @@ def fetch_and_prepare_data():
     # Define a helper function to add indicators
     def add_indicators(df):
         # Moving Averages
-        df['SMA_10'] = ta.sma(df['close'], length=10)
-        df['EMA_10'] = ta.ema(df['close'], length=10)
+        df['SMA_10'] = SMAIndicator(close=df['close'], window=10).sma_indicator()
+        df['EMA_10'] = EMAIndicator(close=df['close'], window=10).ema_indicator()
 
         # RSI
-        df['RSI_14'] = ta.rsi(df['close'], length=14)
+        df['RSI_14'] = RSIIndicator(close=df['close'], window=14).rsi()
 
         # Stochastic Oscillator
-        stoch = ta.stoch(df['high'], df['low'], df['close'], k=14, d=3, smooth_k=3)
-        df = df.join(stoch)
+        _stoch = StochasticOscillator(
+            high=df['high'], low=df['low'], close=df['close'], window=14, smooth_window=3
+        )
+        df['STOCHk_14_3_3'] = _stoch.stoch()
+        df['STOCHd_14_3_3'] = _stoch.stoch_signal()
 
         # MACD
         ema_fast = df['close'].ewm(span=12, adjust=False).mean()
@@ -217,6 +221,7 @@ def fetch_fear_and_greed_index(limit=1, date_format=''):
 
 def get_current_base64_image():
     screenshot_path = "screenshot.png"
+    driver = None
     try:
         # Set up Chrome options for headless mode
         chrome_options = webdriver.ChromeOptions()
@@ -261,14 +266,15 @@ def get_current_base64_image():
 
         # Take a screenshot to verify the actions
         driver.save_screenshot(screenshot_path)
+        with open(screenshot_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
     except Exception as e:
         print(f"Error making current image: {e}")
         return ""
     finally:
         # Close the browser
-        driver.quit()
-        with open(screenshot_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+        if driver is not None:
+            driver.quit()
 
 def get_instructions(file_path):
     try:

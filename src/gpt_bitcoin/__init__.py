@@ -1,5 +1,5 @@
 """
-GPT Bitcoin Auto-Trading System
+AI Cryptocurrency Auto-Trading System
 
 A modernized cryptocurrency trading system powered by ZhipuAI GLM models.
 with layered architecture, async/await support, and structured logging, and comprehensive testing.

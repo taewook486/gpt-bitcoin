@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for GPT Bitcoin Auto-Trading System
+# Multi-stage Dockerfile for AI Cryptocurrency Auto-Trading System
 # Production-ready configuration with security best practices
 
 #

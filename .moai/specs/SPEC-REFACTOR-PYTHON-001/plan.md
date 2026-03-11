@@ -851,7 +851,7 @@ async def _check_ai_api() -> dict[str, Any]:
 
 **README.md:**
 ```markdown
-# GPT Bitcoin Auto-Trading System
+# AI Cryptocurrency Auto-Trading System
 
 Modern Python 3.12+ 기반 비트코인 자동거래 시스템
 
