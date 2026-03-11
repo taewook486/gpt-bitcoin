@@ -231,7 +231,7 @@ class GLMClient:
     MODEL_VISION = "glm-4.6v"  # Vision-capable model
 
     # API Endpoint (Global)
-    BASE_URL = "https://api.z.ai/api/paas/v4/"  # Global endpoint
+    BASE_URL = "https://api.z.ai/api/coding/paas/v4/"  # Global endpoint
 
     def __init__(
         self,
