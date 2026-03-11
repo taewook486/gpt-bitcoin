@@ -267,7 +267,7 @@ with st.sidebar:
 
     # Check PIN status
     try:
-        is_pin_set = asyncio.run(security_service.is_pin_set())
+        is_pin_set = security_service.is_pin_set()
         pin_status = "설정됨" if is_pin_set else "미설정"
         st.caption(f"PIN 상태: {pin_status}")
 
@@ -738,7 +738,7 @@ with tab2:
 
         # Check if PIN is set
         try:
-            is_pin_set = asyncio.run(security_service.is_pin_set())
+            is_pin_set = security_service.is_pin_set()
             if not is_pin_set:
                 st.warning("⚠️ 거래를 시작하기 전에 PIN을 설정해주세요. 사이드바의 'PIN 설정하기' 버튼을 클릭하세요.")
         except Exception as e:
