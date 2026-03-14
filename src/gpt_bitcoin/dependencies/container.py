@@ -164,7 +164,7 @@ class Container(containers.DeclarativeContainer):
     )
 
     # GLM client - Singleton to reuse rate limiter state
-    # Always uses global endpoint: https://api.z.ai/api/paas/v4/
+    # Always uses global endpoint: https://api.z.ai/api/coding/paas/v4/
     glm_client: providers.Provider[GLMClient] = providers.Singleton(
         GLMClient,
         settings=settings,

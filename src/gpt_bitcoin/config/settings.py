@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # AI Provider Configuration (Dual Provider Mode)
     glm_api_key: str = Field(default="", description="GLM API key (primary provider)")
     glm_api_base: str = Field(
-        default="https://open.bigmodel.cn/api/paas/v4/",
+        default="https://api.z.ai/api/coding/paas/v4/",
         description="GLM API base URL",
     )
     glm_model: str = Field(default="glm-5", description="GLM model name")

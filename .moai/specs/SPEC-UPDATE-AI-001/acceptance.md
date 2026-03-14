@@ -55,7 +55,7 @@ Feature: 듀얼 프로바이더 AI 클라이언트 인증
 
   Scenario: GLM-5 API 키로 성공적인 인증
     Given 환경 변수 GLM_API_KEY가 유효한 API 키로 설정됨
-    And 환경 변수 GLM_API_BASE가 "https://open.bigmodel.cn/api/paas/v4/"로 설정됨
+    And 환경 변수 GLM_API_BASE가 "https://api.z.ai/api/coding/paas/v4/"로 설정됨
     When 시스템이 get_ai_client() 함수를 호출함
     Then GLM-5 클라이언트가 성공적으로 초기화됨
     And 클라이언트의 base_url이 GLM_API_BASE와 일치함

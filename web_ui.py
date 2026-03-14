@@ -278,7 +278,13 @@ def get_market_data(
             price = await client.get_current_price(ticker=ticker)
         return ohlcv, price
 
-    return asyncio.run(_fetch())
+    # Create a new event loop for isolation from Streamlit's event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(_fetch())
+    finally:
+        loop.close()
 
 
 @st.cache_data(ttl=30)
@@ -297,7 +303,13 @@ def get_account_info(testnet_mode: bool = False):
             balances = await client.get_balances()
         return balances
 
-    return asyncio.run(_fetch())
+    # Create a new event loop for isolation from Streamlit's event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(_fetch())
+    finally:
+        loop.close()
 
 
 @st.cache_data(ttl=60)
@@ -307,14 +319,16 @@ def get_ai_recommendation(
     instruction_version: str = "v3",
     testnet_mode: bool = False,
 ):
-    """Get AI trading recommendation."""
+    """Get AI trading recommendation with full data analysis."""
     import asyncio
+    import sqlite3
+
+    import requests
 
     async def _fetch():
         settings = get_settings()
         container = get_container()
         glm_client = container.glm_client()
-        # @MX:NOTE: testnet_mode에 따라 클라이언트 선택
         upbit_client = MockUpbitClient() if testnet_mode else UpbitClient(settings)
 
         strategy_manager = StrategyManager(strategy=strategy)
@@ -323,28 +337,148 @@ def get_ai_recommendation(
         async with upbit_client:
             ohlcv_data = await upbit_client.get_ohlcv(ticker=ticker, interval="day", count=30)
             current_price = await upbit_client.get_current_price(ticker=ticker)
+            balances = await upbit_client.get_balances()
 
-        price_change = 0.0
-        if len(ohlcv_data) >= 2:
-            price_change = ((current_price / ohlcv_data[-1].close) - 1) * 100
+        # ===== 1. Technical Analysis =====
+        df = pd.DataFrame([{
+            'open': d.open, 'high': d.high, 'low': d.low,
+            'close': d.close, 'volume': d.volume
+        } for d in ohlcv_data])
 
-        # Load instructions using InstructionManager
+        # RSI
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        current_rsi = df['rsi'].iloc[-1] if not df['rsi'].empty else 50
+
+        # Moving Averages
+        df['sma_7'] = df['close'].rolling(window=7).mean()
+        df['sma_14'] = df['close'].rolling(window=14).mean()
+        df['sma_30'] = df['close'].rolling(window=30).mean()
+
+        # MACD
+        ema_12 = df['close'].ewm(span=12, adjust=False).mean()
+        ema_26 = df['close'].ewm(span=26, adjust=False).mean()
+        df['macd'] = ema_12 - ema_26
+        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+        df['macd_hist'] = df['macd'] - df['macd_signal']
+
+        technical_analysis = f"""Technical Analysis for {ticker}:
+Current Price: {current_price:,.0f} KRW
+RSI (14): {current_rsi:.2f}
+SMA 7: {df['sma_7'].iloc[-1]:,.0f} KRW
+SMA 14: {df['sma_14'].iloc[-1]:,.0f} KRW
+SMA 30: {df['sma_30'].iloc[-1]:,.0f} KRW
+MACD: {df['macd'].iloc[-1]:,.0f}
+MACD Signal: {df['macd_signal'].iloc[-1]:,.0f}
+MACD Histogram: {df['macd_hist'].iloc[-1]:,.0f}
+24h Price Change: {((current_price / df['close'].iloc[-2]) - 1) * 100:+.2f}%
+7d Price Change: {((current_price / df['close'].iloc[-7]) - 1) * 100:+.2f}%
+30d Price Change: {((current_price / df['close'].iloc[0]) - 1) * 100:+.2f}%
+"""
+
+        # ===== 2. Fear & Greed Index =====
+        fear_greed_data = ""
+        try:
+            response = requests.get(
+                "https://api.alternative.me/fng/",
+                params={"limit": 1, "format": "json"},
+                timeout=10
+            )
+            if response.status_code == 200:
+                fng_data = response.json().get("data", [])
+                if fng_data:
+                    fear_greed_data = f"""Fear & Greed Index:
+Value: {fng_data[0].get('value', 'N/A')}
+Classification: {fng_data[0].get('value_classification', 'N/A')}
+"""
+        except Exception as e:
+            logger.warning(f"Failed to fetch Fear & Greed Index: {e}")
+
+        # ===== 3. Current Investment Status =====
+        krw_balance = 0.0
+        btc_balance = 0.0
+        btc_avg_buy_price = 0.0
+
+        for balance in balances:
+            if balance.currency == 'KRW':
+                krw_balance = float(balance.balance)
+            elif balance.currency == 'BTC':
+                btc_balance = float(balance.balance)
+                btc_avg_buy_price = float(balance.avg_buy_price)
+
+        current_status = f"""Current Investment Status:
+KRW Balance: {krw_balance:,.0f} KRW
+BTC Balance: {btc_balance:.8f} BTC
+BTC Average Buy Price: {btc_avg_buy_price:,.0f} KRW
+Current BTC Value: {btc_balance * current_price:,.0f} KRW
+Total Portfolio Value: {krw_balance + (btc_balance * current_price):,.0f} KRW
+"""
+
+        # ===== 4. Previous Decisions =====
+        previous_decisions = ""
+        try:
+            conn = sqlite3.connect("trading_decisions.sqlite")
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT timestamp, decision, percentage, reason
+                FROM decisions
+                WHERE date(timestamp) >= date('now', '-7 days')
+                ORDER BY timestamp DESC
+                LIMIT 10
+            """)
+            rows = cursor.fetchall()
+            conn.close()
+
+            if rows:
+                previous_decisions = "Recent Trading Decisions (Last 7 Days):\n"
+                for row in rows:
+                    ts, decision, percentage, reason = row
+                    previous_decisions += f"- {ts}: {decision} {percentage}% - {reason}\n"
+        except Exception as e:
+            logger.warning(f"Failed to fetch previous decisions: {e}")
+
+        # ===== 5. News Data (optional) =====
+        news_data = ""
+        try:
+            if settings.serpapi_api_key and settings.serpapi_api_key != "your_serpapi_key_here":
+                response = requests.get(
+                    "https://serpapi.com/search",
+                    params={
+                        "api_key": settings.serpapi_api_key,
+                        "q": f"{ticker} cryptocurrency news",
+                        "hl": "en",
+                        "gl": "us",
+                        "num": 5
+                    },
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    news_results = data.get("news_results", [])
+                    if news_results:
+                        news_data = "Recent News:\n"
+                        for news in news_results[:5]:
+                            if isinstance(news, dict):
+                                news_data += f"- {news.get('title', 'N/A')}\n"
+        except Exception as e:
+            logger.warning(f"Failed to fetch news data: {e}")
+
+        # ===== Load Instructions =====
         instruction_manager = InstructionManager(base_path=Path(__file__).parent)
-
-        # Determine instruction file based on version
         inst_file = "instructions.md"
         if instruction_version == "v2":
             inst_file = "instructions_v2.md"
         elif instruction_version == "v3":
             inst_file = "instructions_v3.md"
 
-        # Build context-specific instructions
         base_instructions = instruction_manager.load(inst_file)
         if base_instructions is None:
-            # Fallback to simple prompt if instructions file not found
             base_instructions = "You are a cryptocurrency trading assistant."
 
-        # Prepare analysis prompt with context
+        # ===== Build System Prompt =====
         context_addition = f"""
 
 ## Current Context
@@ -356,7 +490,6 @@ RSI Oversold Threshold: {strategy_config.rsi_oversold}
 RSI Overbought Threshold: {strategy_config.rsi_overbought}
 
 Cryptocurrency: {ticker}
-Current Price: {current_price:,.0f} KRW
 
 ## Response Format
 
@@ -371,18 +504,33 @@ Respond with a JSON object containing:
 
         system_prompt = base_instructions + context_addition
 
-        market_summary = f"""Current Price: {current_price:,.0f} KRW
-Price Change (24h): {price_change:+.2f}%
+        # ===== Build User Message =====
+        user_message = f"""
+{technical_analysis}
+
+{fear_greed_data}
+
+{current_status}
+
+{previous_decisions}
+
+{news_data}
 """
 
         response = await glm_client.analyze_text(
             system_prompt=system_prompt,
-            user_message=market_summary,
+            user_message=user_message,
         )
 
         return response, current_price
 
-    return asyncio.run(_fetch())
+    # Create a new event loop for isolation from Streamlit's event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(_fetch())
+    finally:
+        loop.close()
 
 
 # =============================================================================
@@ -1186,12 +1334,10 @@ with tab4:
             else:
                 date_filter = (datetime.now() - timedelta(days=filter_days), datetime.now())
 
-            trades = asyncio.run(
-                trade_repo.get_trades(
-                    ticker=ticker_filter,
-                    start_time=date_filter[0] if date_filter else None,
-                    end_time=date_filter[1] if date_filter else None,
-                )
+            trades = trade_repo.get_trades(
+                ticker=ticker_filter,
+                start_date=date_filter[0] if date_filter else None,
+                end_date=date_filter[1] if date_filter else None,
             )
 
             # Filter by trade type if selected

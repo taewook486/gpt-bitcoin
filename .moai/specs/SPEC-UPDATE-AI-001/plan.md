@@ -65,7 +65,7 @@ def get_ai_client():
         try:
             return OpenAI(
                 api_key=glm_key,
-                base_url=os.getenv("GLM_API_BASE", "https://open.bigmodel.cn/api/paas/v4/"),
+                base_url=os.getenv("GLM_API_BASE", "https://api.z.ai/api/coding/paas/v4/"),
                 timeout=30
             )
         except Exception as e:
@@ -109,7 +109,7 @@ client = get_ai_client()
 # AI Provider Configuration (Dual Provider Mode)
 # Primary: GLM-5 (Zhipu AI)
 GLM_API_KEY=your_glm_api_key_here
-GLM_API_BASE=https://open.bigmodel.cn/api/paas/v4/
+GLM_API_BASE=https://api.z.ai/api/coding/paas/v4/
 
 # Fallback: OpenAI (retained for backup)
 OPENAI_API_KEY=sk-proj-xxxxx

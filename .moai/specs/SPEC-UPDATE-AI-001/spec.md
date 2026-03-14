@@ -300,7 +300,7 @@ def check_provider_health(client: OpenAI) -> bool:
 ```bash
 # Primary Provider (GLM-5)
 GLM_API_KEY=your_glm_api_key_here
-GLM_API_BASE=https://open.bigmodel.cn/api/paas/v4/
+GLM_API_BASE=https://api.z.ai/api/coding/paas/v4/
 GLM_MODEL=glm-5  # or glm-5-vision for v3
 
 # Fallback Provider (OpenAI)
@@ -327,7 +327,7 @@ AI_FAILURE_THRESHOLD=3  # consecutive failures
 class AIProviderConfig:
     """AI 프로바이더 설정"""
     glm_api_key: str | None = None
-    glm_api_base: str = "https://open.bigmodel.cn/api/paas/v4/"
+    glm_api_base: str = "https://api.z.ai/api/coding/paas/v4/"
     glm_model: str = "glm-5"
     openai_api_key: str | None = None
     openai_model: str = "gpt-4-turbo"

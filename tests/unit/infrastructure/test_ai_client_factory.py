@@ -72,7 +72,7 @@ class TestGetAIClientWithGLMKey:
 
         # Assert
         call_kwargs = mock_zhipuai.call_args.kwargs
-        assert call_kwargs["base_url"] == "https://open.bigmodel.cn/api/paas/v4/"
+        assert call_kwargs["base_url"] == "https://api.z.ai/api/coding/paas/v4/"
 
     @patch("gpt_bitcoin.infrastructure.external.ai_client_factory.os.environ.get")
     @patch("gpt_bitcoin.infrastructure.external.ai_client_factory.ZhipuAI")
