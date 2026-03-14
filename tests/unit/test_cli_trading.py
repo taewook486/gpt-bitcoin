@@ -14,7 +14,6 @@ Tests cover:
 
 from __future__ import annotations
 
-import argparse
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -22,7 +21,6 @@ import pytest
 
 from gpt_bitcoin.domain.trading import TradeApproval, TradeResult
 from gpt_bitcoin.domain.trading_state import TradingState
-
 
 # =============================================================================
 # Fixtures
@@ -134,9 +132,7 @@ class TestManualBuyMode:
             )
 
         # Assert
-        mock_trading_service.request_buy_order.assert_called_once_with(
-            "KRW-BTC", 10000.0
-        )
+        mock_trading_service.request_buy_order.assert_called_once_with("KRW-BTC", 10000.0)
         assert result is not None
         assert result.success is True
 
@@ -246,15 +242,11 @@ class TestManualSellMode:
             )
 
         # Assert
-        mock_trading_service.request_sell_order.assert_called_once_with(
-            "KRW-BTC", 0.1
-        )
+        mock_trading_service.request_sell_order.assert_called_once_with("KRW-BTC", 0.1)
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_manual_sell_with_user_approval(
-        self, mock_trading_service, mock_trade_result
-    ):
+    async def test_manual_sell_with_user_approval(self, mock_trading_service, mock_trade_result):
         """Test manual sell with user approval executes trade."""
         # Arrange
         sell_approval = TradeApproval(

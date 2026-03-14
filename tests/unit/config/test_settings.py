@@ -7,8 +7,6 @@ Tests cover:
 - Default values
 """
 
-import os
-
 import pytest
 from pydantic import ValidationError
 
@@ -233,11 +231,13 @@ class TestGetSettingsAndReload:
     def setup_method(self):
         """Reset settings before each test."""
         from gpt_bitcoin.config.settings import reload_settings
+
         reload_settings()
 
     def teardown_method(self):
         """Clean up after each test."""
         from gpt_bitcoin.config.settings import reload_settings
+
         reload_settings()
 
     def test_get_settings_returns_singleton(self, monkeypatch):
@@ -272,7 +272,7 @@ class TestGetSettingsAndReload:
     def test_reload_settings_loads_from_env(self, monkeypatch):
         """reload_settings should reload from environment."""
         from gpt_bitcoin.config import settings as settings_module
-        from gpt_bitcoin.config.settings import get_settings, reload_settings
+        from gpt_bitcoin.config.settings import get_settings
 
         # Clear any cached settings first and set module-level variable
         settings_module._settings = None

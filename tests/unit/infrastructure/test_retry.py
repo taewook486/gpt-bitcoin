@@ -8,8 +8,6 @@ Tests cover:
 - Exception handling
 """
 
-import asyncio
-
 import pytest
 
 from gpt_bitcoin.infrastructure.resilience.retry import (

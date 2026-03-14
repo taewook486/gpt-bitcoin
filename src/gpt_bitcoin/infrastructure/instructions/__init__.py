@@ -166,7 +166,7 @@ class InstructionManager:
         try:
             for file_path in self._base_path.glob("instructions_v*.md"):
                 # Extract version from filename
-                match = re.search(r'_v(\d+)', file_path.name)
+                match = re.search(r"_v(\d+)", file_path.name)
                 if match:
                     versions.add(f"v{match.group(1)}")
         except Exception:
@@ -245,7 +245,9 @@ class InstructionManager:
         # Add v2 header
         header = "# Trading Instructions v2\n\n"
         # Add multi-coin support note
-        coin_support = "\n\n## Multi-Coin Support\n\nThis version supports multiple cryptocurrencies.\n"
+        coin_support = (
+            "\n\n## Multi-Coin Support\n\nThis version supports multiple cryptocurrencies.\n"
+        )
 
         return header + content + coin_support
 

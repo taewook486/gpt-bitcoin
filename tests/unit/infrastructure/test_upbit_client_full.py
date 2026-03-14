@@ -12,20 +12,18 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import aiohttp
 
-from gpt_bitcoin.infrastructure.external.upbit_client import (
-    Balance,
-    Orderbook,
-    OHLCV,
-    Order,
-    UpbitClient,
-)
+import aiohttp
+import pytest
+
 from gpt_bitcoin.infrastructure.exceptions import (
     InsufficientBalanceError,
     UpbitAPIError,
+)
+from gpt_bitcoin.infrastructure.external.upbit_client import (
+    Balance,
+    UpbitClient,
 )
 
 
@@ -149,23 +147,25 @@ class TestUpbitClientBuyMarketOrder:
             "trades_count": None,
         }
 
-        with patch.object(
-            upbit_client,
-            "get_balance",
-            new_callable=AsyncMock,
-            return_value=100000.0,
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                upbit_client,
+                "get_balance",
+                new_callable=AsyncMock,
+                return_value=100000.0,
+            ),
+            patch.object(
                 upbit_client,
                 "_request",
                 new_callable=AsyncMock,
                 return_value=mock_response,
-            ):
-                result = await upbit_client.buy_market_order("KRW-BTC", 50000.0)
+            ),
+        ):
+            result = await upbit_client.buy_market_order("KRW-BTC", 50000.0)
 
-                assert result.uuid == "test-order-uuid"
-                assert result.side == "bid"
-                assert result.state == "done"
+            assert result.uuid == "test-order-uuid"
+            assert result.side == "bid"
+            assert result.state == "done"
 
     @pytest.mark.asyncio
     async def test_buy_market_order_insufficient_balance(self, upbit_client):
@@ -276,22 +276,24 @@ class TestUpbitClientSellMarketOrder:
             "trades_count": None,
         }
 
-        with patch.object(
-            upbit_client,
-            "get_balance",
-            new_callable=AsyncMock,
-            return_value=1.0,
-        ) as mock_get_balance:
-            with patch.object(
+        with (
+            patch.object(
+                upbit_client,
+                "get_balance",
+                new_callable=AsyncMock,
+                return_value=1.0,
+            ) as mock_get_balance,
+            patch.object(
                 upbit_client,
                 "_request",
                 new_callable=AsyncMock,
                 return_value=mock_response,
-            ):
-                await upbit_client.sell_market_order("KRW-ETH", 0.5)
+            ),
+        ):
+            await upbit_client.sell_market_order("KRW-ETH", 0.5)
 
-                # Should check ETH balance (extracted from KRW-ETH)
-                mock_get_balance.assert_called_once_with("ETH")
+            # Should check ETH balance (extracted from KRW-ETH)
+            mock_get_balance.assert_called_once_with("ETH")
 
 
 class TestUpbitClientCancelOrder:
@@ -577,29 +579,31 @@ class TestUpbitClientRequestErrors:
         """_request should raise UpbitAPIError on ClientError."""
         # Test by patching the _request method to simulate the error path
         # This covers the aiohttp.ClientError handling path (lines 341-347)
-        with patch.object(
-            upbit_client,
-            "_ensure_session",
-            new_callable=AsyncMock,
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                upbit_client,
+                "_ensure_session",
+                new_callable=AsyncMock,
+            ),
+            patch.object(
                 upbit_client,
                 "_check_rate_limit",
                 new_callable=AsyncMock,
-            ):
-                # Create a proper async context manager mock that raises error
-                mock_response_cm = AsyncMock()
-                mock_response_cm.__aenter__ = AsyncMock(
-                    side_effect=aiohttp.ClientError("Connection failed")
-                )
-                mock_response_cm.__aexit__ = AsyncMock(return_value=None)
+            ),
+        ):
+            # Create a proper async context manager mock that raises error
+            mock_response_cm = AsyncMock()
+            mock_response_cm.__aenter__ = AsyncMock(
+                side_effect=aiohttp.ClientError("Connection failed")
+            )
+            mock_response_cm.__aexit__ = AsyncMock(return_value=None)
 
-                mock_session = MagicMock()
-                mock_session.request = MagicMock(return_value=mock_response_cm)
-                upbit_client._session = mock_session
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response_cm)
+            upbit_client._session = mock_session
 
-                with pytest.raises(UpbitAPIError, match="Upbit API connection error"):
-                    await upbit_client._request("GET", "/accounts", is_private=True)
+            with pytest.raises(UpbitAPIError, match="Upbit API connection error"):
+                await upbit_client._request("GET", "/accounts", is_private=True)
 
 
 class TestUpbitClientRateLimitWait:

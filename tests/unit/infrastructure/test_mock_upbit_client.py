@@ -19,7 +19,6 @@ import pytest
 from gpt_bitcoin.domain.testnet_config import TestnetConfig
 from gpt_bitcoin.infrastructure.external.mock_upbit_client import MockUpbitClient
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -210,9 +209,7 @@ class TestSellOrder:
     """Tests for simulated sell order functionality."""
 
     @pytest.mark.asyncio
-    async def test_sell_market_order_requires_prior_purchase(
-        self, mock_client: MockUpbitClient
-    ):
+    async def test_sell_market_order_requires_prior_purchase(self, mock_client: MockUpbitClient):
         """Test sell_market_order requires prior purchase."""
         # First buy some BTC
         await mock_client.buy_market_order("KRW-BTC", 100_000.0)
@@ -236,9 +233,7 @@ class TestSellOrder:
         assert final_krw > initial_krw
 
     @pytest.mark.asyncio
-    async def test_sell_market_order_deducts_coin_balance(
-        self, mock_client: MockUpbitClient
-    ):
+    async def test_sell_market_order_deducts_coin_balance(self, mock_client: MockUpbitClient):
         """Test sell_market_order deducts coin balance."""
         # First buy some BTC
         await mock_client.buy_market_order("KRW-BTC", 100_000.0)

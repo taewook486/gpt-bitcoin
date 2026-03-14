@@ -17,7 +17,6 @@ import pytest
 from gpt_bitcoin.domain.testnet_config import MockBalance, TestnetConfig
 from gpt_bitcoin.domain.trading_mode import TradingMode
 
-
 # =============================================================================
 # TradingMode Enum Tests
 # =============================================================================

@@ -17,13 +17,12 @@ Tests cover:
 from __future__ import annotations
 
 import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from gpt_bitcoin.domain.audit import AuditRecord
 from gpt_bitcoin.domain.security import (
-    LimitExceededError,
     PinAlreadySetError,
     PinNotSetError,
     SecurityError,
@@ -32,7 +31,6 @@ from gpt_bitcoin.domain.security import (
     SecuritySettings,
 )
 from gpt_bitcoin.domain.trading import TradeApproval, TradeResult
-
 
 # =============================================================================
 # Fixtures
@@ -289,9 +287,7 @@ class TestSecureTradeExecution:
         assert approval.ticker == "KRW-BTC"
 
     @pytest.mark.asyncio
-    async def test_secure_request_buy_wrong_pin_rejected(
-        self, security_service: SecurityService
-    ):
+    async def test_secure_request_buy_wrong_pin_rejected(self, security_service: SecurityService):
         """Test secure buy request with wrong PIN is rejected."""
         await security_service.setup_pin("9876")
 
@@ -304,9 +300,7 @@ class TestSecureTradeExecution:
             )
 
     @pytest.mark.asyncio
-    async def test_secure_execute_trade_logs_audit(
-        self, security_service: SecurityService
-    ):
+    async def test_secure_execute_trade_logs_audit(self, security_service: SecurityService):
         """Test secure execution logs to audit."""
         # Setup PIN first
         await security_service.setup_pin("9876")
@@ -439,9 +433,7 @@ class TestSecurityAuditMethods:
             limit_check_passed=True,
             high_value_trade=False,
         )
-        security_service.audit_repository.find_with_filters = AsyncMock(
-            return_value=[mock_record]
-        )
+        security_service.audit_repository.find_with_filters = AsyncMock(return_value=[mock_record])
 
         history = await security_service.get_audit_history(limit=10)
 

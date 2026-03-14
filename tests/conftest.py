@@ -10,12 +10,10 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-
 
 # ============================================================================
 # Module-level Mocks (installed before any test runs)
@@ -64,15 +62,11 @@ def install_module_mocks():
         sys.modules["selenium"] = mock_selenium
         sys.modules["selenium.webdriver"] = mock_webdriver
         sys.modules["selenium.webdriver.chrome"] = mock_selenium.webdriver.chrome
-        sys.modules["selenium.webdriver.chrome.service"] = (
-            mock_selenium.webdriver.chrome.service
-        )
+        sys.modules["selenium.webdriver.chrome.service"] = mock_selenium.webdriver.chrome.service
         sys.modules["selenium.webdriver.common"] = mock_selenium.webdriver.common
         sys.modules["selenium.webdriver.common.by"] = mock_selenium.webdriver.common.by
         sys.modules["selenium.webdriver.support"] = mock_selenium.webdriver.support
-        sys.modules["selenium.webdriver.support.ui"] = (
-            mock_selenium.webdriver.support.ui
-        )
+        sys.modules["selenium.webdriver.support.ui"] = mock_selenium.webdriver.support.ui
         sys.modules["selenium.webdriver.support.expected_conditions"] = (
             mock_selenium.webdriver.support.expected_conditions
         )
@@ -459,9 +453,12 @@ def temp_db_path(tmp_path: Path):
     db_path = tmp_path / "test_trading_decisions.sqlite"
     yield str(db_path)
 
-    # Cleanup
+    # Cleanup (ignore PermissionError on Windows due to SQLite file locking)
     if db_path.exists():
-        db_path.unlink()
+        try:
+            db_path.unlink()
+        except PermissionError:
+            pass
 
 
 @pytest.fixture

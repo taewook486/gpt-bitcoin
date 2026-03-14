@@ -3,7 +3,9 @@ zhipuai
 pyupbit
 pyjwt
 pandas
-pandas_ta
+# pandas_ta  # Python 3.14 호환성 문제로 일시 제거
 schedule
 streamlit
 selenium
+rich
+aiosqlite

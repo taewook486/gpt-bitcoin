@@ -19,8 +19,6 @@ from enum import Enum
 from io import StringIO
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
-
 if TYPE_CHECKING:
     from gpt_bitcoin.infrastructure.persistence.trade_repository import TradeRepository
 
@@ -109,7 +107,7 @@ class TradeRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str | float]) -> "TradeRecord":
+    def from_dict(cls, data: dict[str, str | float]) -> TradeRecord:
         """
         딕셔너리로부터 인스턴스 생성 (역직렬화).
 
@@ -241,13 +239,11 @@ class TradeHistoryService:
                     match_quantity = min(buy_remaining, remaining_sell)
 
                     # 매칭 비용 계산
-                    buy_cost = (
-                        buy_trade.price * match_quantity
-                        + buy_trade.fee * (match_quantity / buy_trade.quantity)
+                    buy_cost = buy_trade.price * match_quantity + buy_trade.fee * (
+                        match_quantity / buy_trade.quantity
                     )
-                    sell_revenue = (
-                        trade.price * match_quantity
-                        - trade.fee * (match_quantity / trade.quantity)
+                    sell_revenue = trade.price * match_quantity - trade.fee * (
+                        match_quantity / trade.quantity
                     )
 
                     # 손익 누적
@@ -310,12 +306,8 @@ class TradeHistoryService:
         # 거래 내역 조회 (calculate_fifo_profit에서도 사용)
         trades = self._get_sorted_trades(ticker)
 
-        total_buy_quantity = sum(
-            t.quantity for t in trades if t.trade_type == TradeType.BUY
-        )
-        total_sell_quantity = sum(
-            t.quantity for t in trades if t.trade_type == TradeType.SELL
-        )
+        total_buy_quantity = sum(t.quantity for t in trades if t.trade_type == TradeType.BUY)
+        total_sell_quantity = sum(t.quantity for t in trades if t.trade_type == TradeType.SELL)
 
         # FIFO 손익 계산 (이미 정렬된 trades 사용)
         realized_profit = self._calculate_fifo_profit_from_trades(trades)
@@ -360,19 +352,21 @@ class TradeHistoryService:
         writer.writeheader()
 
         for trade in trades:
-            writer.writerow({
-                "ticker": trade.ticker,
-                "trade_type": trade.trade_type.value,
-                "price": trade.price,
-                "quantity": trade.quantity,
-                "fee": trade.fee,
-                "timestamp": trade.timestamp.isoformat(),
-            })
+            writer.writerow(
+                {
+                    "ticker": trade.ticker,
+                    "trade_type": trade.trade_type.value,
+                    "price": trade.price,
+                    "quantity": trade.quantity,
+                    "fee": trade.fee,
+                    "timestamp": trade.timestamp.isoformat(),
+                }
+            )
 
 
 __all__ = [
-    "TradeType",
-    "TradeRecord",
-    "TradeHistoryService",
     "TradeHistoryError",
+    "TradeHistoryService",
+    "TradeRecord",
+    "TradeType",
 ]

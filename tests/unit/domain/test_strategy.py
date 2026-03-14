@@ -9,15 +9,13 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from gpt_bitcoin.domain import (
-    TradingStrategy,
     RiskTolerance,
-    StrategyManager,
     StrategyConfig,
+    StrategyManager,
+    TradingStrategy,
 )
 
 
@@ -27,6 +25,7 @@ class TestTradingStrategy:
     def test_trading_strategy_is_enum(self):
         """TradingStrategy should be an enum."""
         from enum import Enum
+
         assert issubclass(TradingStrategy, Enum)
 
     def test_strategy_types(self):
@@ -49,6 +48,7 @@ class TestRiskTolerance:
     def test_risk_tolerance_is_enum(self):
         """RiskTolerance should be an enum."""
         from enum import Enum
+
         assert issubclass(RiskTolerance, Enum)
 
     def test_risk_tolerance_types(self):

@@ -7,27 +7,27 @@ Provides OpenTelemetry-based tracing, metrics, and health checking.
 """
 
 from gpt_bitcoin.infrastructure.observability.tracing import (
-    get_tracer,
-    setup_tracing,
-    create_metrics,
-    record_span,
     HealthChecker,
-    create_health_check_endpoint,
-    get_meter_provider,
     configure_telemetry,
-    set_correlation_id,
+    create_health_check_endpoint,
+    create_metrics,
     get_correlation_id,
+    get_meter_provider,
+    get_tracer,
+    record_span,
+    set_correlation_id,
+    setup_tracing,
 )
 
 __all__ = [
-    "get_tracer",
-    "setup_tracing",
-    "create_metrics",
-    "record_span",
     "HealthChecker",
-    "create_health_check_endpoint",
-    "get_meter_provider",
     "configure_telemetry",
-    "set_correlation_id",
+    "create_health_check_endpoint",
+    "create_metrics",
     "get_correlation_id",
+    "get_meter_provider",
+    "get_tracer",
+    "record_span",
+    "set_correlation_id",
+    "setup_tracing",
 ]

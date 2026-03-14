@@ -7,15 +7,12 @@ Tests cover:
 - Client initialization
 """
 
-import pytest
-
 from gpt_bitcoin.infrastructure.external.upbit_client import (
-    Balance,
     OHLCV,
+    Balance,
     Order,
     Orderbook,
     OrderbookUnit,
-    UpbitClient,
 )
 
 

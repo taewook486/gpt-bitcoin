@@ -13,13 +13,14 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-from gpt_bitcoin.infrastructure.logging import get_logger, bind_correlation_context
+from gpt_bitcoin.infrastructure.logging import bind_correlation_context, get_logger
 
 
 class AlertLevel(str, Enum):
@@ -151,10 +152,7 @@ class DeadLetterQueue:
         Returns:
             List of matching operations
         """
-        return [
-            op for op in self._queue
-            if op.operation_type == operation_type
-        ]
+        return [op for op in self._queue if op.operation_type == operation_type]
 
     def remove(self, operation: FailedOperation) -> bool:
         """
@@ -410,9 +408,9 @@ class ErrorHandler:
 
 __all__ = [
     "AlertLevel",
-    "FailedOperation",
-    "ErrorContext",
-    "DeadLetterQueue",
     "AlertSystem",
+    "DeadLetterQueue",
+    "ErrorContext",
     "ErrorHandler",
+    "FailedOperation",
 ]

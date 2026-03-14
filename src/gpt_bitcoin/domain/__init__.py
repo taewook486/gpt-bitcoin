@@ -19,39 +19,42 @@ This module provides:
 
 from __future__ import annotations
 
+from enum import Enum
 from pathlib import Path
 from typing import Literal
-from enum import Enum
 
 from pydantic import BaseModel, Field
 
-# Import trading domain models
-from gpt_bitcoin.domain.trading import (
-    TradeRequest,
-    TradeApproval,
-    TradeResult,
-    TradingService,
-)
-from gpt_bitcoin.domain.trading_state import TradingState, TradingStateType
-from gpt_bitcoin.domain.trading_mode import TradingMode
-from gpt_bitcoin.domain.testnet_config import MockBalance, TestnetConfig
+from gpt_bitcoin.domain.audit import AuditError, AuditRecord, AuditRepository
 from gpt_bitcoin.domain.security import (
+    LimitExceededError,
+    PinAlreadySetError,
+    PinNotSetError,
+    SecurityError,
+    SecurityLockedError,
     SecurityService,
     SecuritySettings,
     SecuritySettingsModel,
-    SecurityError,
-    PinNotSetError,
-    PinAlreadySetError,
-    SecurityLockedError,
-    LimitExceededError,
 )
-from gpt_bitcoin.domain.audit import AuditRecord, AuditRepository, AuditError
+from gpt_bitcoin.domain.testnet_config import MockBalance, TestnetConfig
+from gpt_bitcoin.domain.trade_history import (
+    TradeHistoryError,
+    TradeHistoryService,
+    TradeType,
+)
 from gpt_bitcoin.domain.trade_history import (
     TradeRecord as TradeHistoryRecord,
-    TradeType,
-    TradeHistoryService,
-    TradeHistoryError,
 )
+
+# Import trading domain models
+from gpt_bitcoin.domain.trading import (
+    TradeApproval,
+    TradeRequest,
+    TradeResult,
+    TradingService,
+)
+from gpt_bitcoin.domain.trading_mode import TradingMode
+from gpt_bitcoin.domain.trading_state import TradingState, TradingStateType
 
 
 class Cryptocurrency(str, Enum):
@@ -81,6 +84,7 @@ class Cryptocurrency(str, Enum):
 
 class TradingStrategy(str, Enum):
     """Trading strategy types."""
+
     conservative = "conservative"
     balanced = "balanced"
     aggressive = "aggressive"
@@ -89,6 +93,7 @@ class TradingStrategy(str, Enum):
 
 class RiskTolerance(str, Enum):
     """Risk tolerance levels for portfolio management."""
+
     conservative = "conservative"
     balanced = "balanced"
     aggressive = "aggressive"
@@ -340,7 +345,7 @@ class StrategyConfig(BaseModel):
     )
 
     @classmethod
-    def conservative(cls) -> "StrategyConfig":
+    def conservative(cls) -> StrategyConfig:
         """Get conservative strategy configuration."""
         return cls(
             max_buy_percentage=20.0,
@@ -352,7 +357,7 @@ class StrategyConfig(BaseModel):
         )
 
     @classmethod
-    def balanced(cls) -> "StrategyConfig":
+    def balanced(cls) -> StrategyConfig:
         """Get balanced strategy configuration."""
         return cls(
             max_buy_percentage=35.0,
@@ -364,7 +369,7 @@ class StrategyConfig(BaseModel):
         )
 
     @classmethod
-    def aggressive(cls) -> "StrategyConfig":
+    def aggressive(cls) -> StrategyConfig:
         """Get aggressive strategy configuration."""
         return cls(
             max_buy_percentage=50.0,
@@ -403,11 +408,12 @@ class StrategyManager:
     }
 
     # Default system prompt template
-    DEFAULT_PROMPT = """You are a cryptocurrency trading assistant.
-Analyze the provided market data and make trading decisions.
-Current strategy: {strategy}
-Max buy: {max_buy}% | Max sell: {max_sell}%
-RSI oversold: {rsi_oversold} | RSI overbought: {rsi_overbought}
+    DEFAULT_PROMPT = """당신은 암호화폐 거래 도우미입니다.
+제공된 시장 데이터를 분석하고 거래 결정을 내리세요.
+**중요: 모든 응답은 반드시 한국어로 작성해야 합니다.**
+현재 전략: {strategy}
+최대 매수: {max_buy}% | 최대 매도: {max_sell}%
+RSI 과매도: {rsi_oversold} | RSI 과매수: {rsi_overbought}
 """
 
     def __init__(

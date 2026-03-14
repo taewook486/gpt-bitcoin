@@ -1,0 +1,209 @@
+# Prometheus alerting rules for GPT Bitcoin Auto-Trading System
+#
+# This file defines alert conditions based on collected metrics
+
+groups:
+  # Application health alerts
+  - name: application_health
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-error-rate"
+
+      # Application down alert
+      - alert: ApplicationDown
+        expr: up{job="gpt-bitcoin-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "GPT Bitcoin application is down"
+          description: "Application has been unreachable for more than 2 minutes"
+          runbook_url: "https://wiki.example.com/runbooks/application-down"
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High response time detected"
+          description: "P95 response time is {{ $value | humanizeDuration }} (threshold: 5s)"
+          value: "{{ $value }}"
+
+  # GLM API cost alerts
+  - name: glm_api_costs
+    interval: 1m
+    rules:
+      # High daily cost alert
+      - alert: GLMAPICostHigh
+        expr: glm_api_cost_krw > 10000
+        for: 1m
+        labels:
+          severity: warning
+          component: api
+          cost_type: glm
+        annotations:
+          summary: "GLM API daily cost exceeds threshold"
+          description: "Current daily cost: {{ $value | humanize }} KRW (threshold: 10,000 KRW)"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.example.com/runbooks/glm-cost-management"
+
+      # Critical cost threshold
+      - alert: GLMAPICostCritical
+        expr: glm_api_cost_krw > 20000
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+          cost_type: glm
+        annotations:
+          summary: "GLM API daily cost at critical level"
+          description: "Current daily cost: {{ $value | humanize }} KRW (threshold: 20,000 KRW)"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.example.com/runbooks/glm-cost-management"
+
+      # Cost rate increasing rapidly
+      - alert: GLMAPICostRateIncreasing
+        expr: |
+          (
+            rate(glm_api_cost_krw[10m])
+            /
+            rate(glm_api_cost_krw[1h] offset 10m)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+          cost_type: glm
+        annotations:
+          summary: "GLM API cost rate increasing rapidly"
+          description: "Cost rate has increased by more than 2x in the last 10 minutes"
+          value: "{{ $value }}"
+
+  # Trading decision alerts
+  - name: trading_decisions
+    interval: 30s
+    rules:
+      # Slow trading decision alert
+      - alert: TradingDecisionSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(trading_decision_duration_seconds_bucket[5m])) by (le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: trading
+        annotations:
+          summary: "Trading decisions are slow"
+          description: "P95 trading decision time is {{ $value | humanizeDuration }} (threshold: 5s)"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.example.com/runbooks/slow-trading-decisions"
+
+      # Trading decision failures
+      - alert: TradingDecisionFailures
+        expr: |
+          rate(trading_decisions_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: trading
+        annotations:
+          summary: "High trading decision failure rate"
+          description: "Trading decisions are failing at {{ $value | humanize }}/s"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.example.com/runbooks/trading-failures"
+
+      # No trading decisions alert
+      - alert: NoTradingDecisions
+        expr: |
+          increase(trading_decisions_total[1h]) == 0
+        for: 2h
+        labels:
+          severity: warning
+          component: trading
+        annotations:
+          summary: "No trading decisions in last hour"
+          description: "No trading decisions have been made in the past 2 hours"
+          runbook_url: "https://wiki.example.com/runbooks/no-trading-activity"
+
+  # System resource alerts
+  - name: system_resources
+    interval: 30s
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / 1024 / 1024 / 1024) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanize }}GB (threshold: 2GB)"
+          value: "{{ $value }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+          value: "{{ $value }}"
+
+  # Data quality alerts
+  - name: data_quality
+    interval: 1m
+    rules:
+      # Stale market data
+      - alert: StaleMarketData
+        expr: |
+          time() - market_data_last_updated_timestamp > 300
+        for: 2m
+        labels:
+          severity: critical
+          component: data
+        annotations:
+          summary: "Market data is stale"
+          description: "Market data has not been updated for more than 5 minutes"
+          value: "{{ $value | humanizeDuration }}"
+
+      # Missing price data
+      - alert: MissingPriceData
+        expr: |
+          absent(market_price_current)
+        for: 5m
+        labels:
+          severity: critical
+          component: data
+        annotations:
+          summary: "No price data available"
+          description: "Market price metrics are not being collected"

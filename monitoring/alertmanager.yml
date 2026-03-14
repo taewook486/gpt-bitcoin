@@ -1,0 +1,151 @@
+# AlertManager configuration for GPT Bitcoin Auto-Trading System
+#
+# This configuration defines alert routing, receivers, and notification policies
+
+global:
+  # SMTP configuration for email notifications (optional)
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alertmanager@gpt-bitcoin.example.com'
+  # smtp_auth_username: 'alertmanager@example.com'
+  # smtp_auth_password: 'password'
+
+  # Slack configuration (optional)
+  # Set SLACK_WEBHOOK_URL environment variable to enable Slack notifications
+  # slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+  # Default resolve timeout
+  resolve_timeout: 5m
+
+# Inhibition rules - prevent certain alerts when others are firing
+inhibit_rules:
+  # If critical alert is firing, inhibit warning alerts for same component
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ['alertname', 'component']
+
+# Route tree for alert routing
+route:
+  # Default receiver
+  receiver: 'default-receiver'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'component', 'severity']
+
+  # Wait time before sending initial notification
+  group_wait: 30s
+
+  # Wait time before sending updated notification
+  group_interval: 5m
+
+  # Wait time before resending notification
+  repeat_interval: 4h
+
+  # Child routes for specific alert types
+  routes:
+    # Critical alerts - immediate notification
+    - matchers:
+        - severity="critical"
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+      continue: false
+
+    # GLM API cost alerts - special handling
+    - matchers:
+        - alertname="GLMAPICostHigh"
+      receiver: 'cost-alerts'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 6h
+      continue: false
+
+    # Trading decision alerts
+    - matchers:
+        - component="trading"
+      receiver: 'trading-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 2h
+      continue: true
+
+    # Webhook receiver for programmatic handling
+    - matchers:
+        - severity=~"warning|critical"
+      receiver: 'webhook-receiver'
+      continue: true
+
+# Receivers - notification destinations
+receivers:
+  # Default receiver (no-op for development)
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://app:8000/alerts/webhook'
+        send_resolved: true
+        max_alerts: 100
+
+  # Critical alerts receiver
+  - name: 'critical-alerts'
+    # Email configuration (uncomment when needed)
+    # email_configs:
+    #   - to: 'admin@example.com'
+    #     send_resolved: true
+    #     headers:
+    #       Subject: '[CRITICAL] GPT Bitcoin Alert: {{ .GroupLabels.alertname }}'
+
+    # Slack configuration (uncomment when needed)
+    # slack_configs:
+    #   - channel: '#critical-alerts'
+    #     send_resolved: true
+    #     title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    #     color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+    # Webhook for programmatic handling
+    webhook_configs:
+      - url: 'http://app:8000/alerts/webhook'
+        send_resolved: true
+        max_alerts: 100
+        http_config:
+          headers:
+            X-Alert-Priority: 'critical'
+
+  # Cost alerts receiver
+  - name: 'cost-alerts'
+    webhook_configs:
+      - url: 'http://app:8000/alerts/webhook'
+        send_resolved: true
+        max_alerts: 50
+        http_config:
+          headers:
+            X-Alert-Type: 'cost'
+
+    # Slack configuration (uncomment when needed)
+    # slack_configs:
+    #   - channel: '#cost-monitoring'
+    #     send_resolved: true
+    #     title: 'GLM API Cost Alert'
+    #     text: 'Current cost: {{ .CommonAnnotations.value }} KRW'
+
+  # Trading alerts receiver
+  - name: 'trading-alerts'
+    webhook_configs:
+      - url: 'http://app:8000/alerts/webhook'
+        send_resolved: true
+        max_alerts: 100
+        http_config:
+          headers:
+            X-Alert-Component: 'trading'
+
+  # Webhook receiver for all alerts
+  - name: 'webhook-receiver'
+    webhook_configs:
+      - url: 'http://app:8000/alerts/webhook'
+        send_resolved: true
+        max_alerts: 100
+
+# Templates for alert notifications (optional)
+templates: []
+# - '/etc/alertmanager/templates/*.tmpl'

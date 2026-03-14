@@ -10,9 +10,10 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 import base64
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 class TestChartGenerator:
@@ -163,9 +164,9 @@ class TestVisionAnalyzer:
         from gpt_bitcoin.infrastructure.chart import VisionAnalyzer
 
         mock_client = MagicMock()
-        mock_client.chat_async = AsyncMock(return_value={
-            "choices": [{"message": {"content": "Analysis result"}}]
-        })
+        mock_client.chat_async = AsyncMock(
+            return_value={"choices": [{"message": {"content": "Analysis result"}}]}
+        )
 
         analyzer = VisionAnalyzer(client=mock_client)
 
@@ -199,7 +200,6 @@ class TestChartAnalysisIntegration:
         """Full chart analysis workflow should work."""
         from gpt_bitcoin.infrastructure.chart import (
             ChartGenerator,
-            VisionAnalyzer,
             encode_to_base64,
         )
 
@@ -258,9 +258,11 @@ class TestChartGeneratorEdgeCases:
         from gpt_bitcoin.infrastructure.chart import ChartGenerator
 
         generator = ChartGenerator()
-        result = generator.generate_ohlcv_chart([
-            {"open": 100, "high": 110, "low": 95, "close": 105, "volume": 1000},
-        ])
+        result = generator.generate_ohlcv_chart(
+            [
+                {"open": 100, "high": 110, "low": 95, "close": 105, "volume": 1000},
+            ]
+        )
 
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -270,10 +272,12 @@ class TestChartGeneratorEdgeCases:
         from gpt_bitcoin.infrastructure.chart import ChartGenerator
 
         generator = ChartGenerator(style="dark")
-        result = generator.generate_ohlcv_chart([
-            {"open": 100, "high": 110, "low": 95, "close": 105, "volume": 1000},
-            {"open": 105, "high": 115, "low": 100, "close": 110, "volume": 1200},
-        ])
+        result = generator.generate_ohlcv_chart(
+            [
+                {"open": 100, "high": 110, "low": 95, "close": 105, "volume": 1000},
+                {"open": 105, "high": 115, "low": 100, "close": 110, "volume": 1200},
+            ]
+        )
 
         assert isinstance(result, bytes)
 
@@ -321,9 +325,9 @@ class TestVisionAnalyzerEdgeCases:
         from gpt_bitcoin.infrastructure.chart import VisionAnalyzer
 
         mock_client = MagicMock()
-        mock_client.chat = MagicMock(return_value={
-            "choices": [{"message": {"content": "Sync analysis result"}}]
-        })
+        mock_client.chat = MagicMock(
+            return_value={"choices": [{"message": {"content": "Sync analysis result"}}]}
+        )
 
         analyzer = VisionAnalyzer(client=mock_client)
         analyzer._vision_available = True

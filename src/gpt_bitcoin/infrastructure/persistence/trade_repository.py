@@ -37,7 +37,7 @@ class TradeRepository:
         @MX:REASON: 데이터베이스 연결 관리와 쿼리 실행을 캡슐화합니다.
     """
 
-    def __init__(self, settings: "Settings") -> None:
+    def __init__(self, settings: Settings) -> None:
         """
         TradeRepository 초기화.
 
@@ -121,17 +121,20 @@ class TradeRepository:
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO trades (ticker, trade_type, price, quantity, fee, timestamp)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            trade.ticker,
-            trade.trade_type.value,
-            trade.price,
-            trade.quantity,
-            trade.fee,
-            trade.timestamp.isoformat(),
-        ))
+        """,
+            (
+                trade.ticker,
+                trade.trade_type.value,
+                trade.price,
+                trade.quantity,
+                trade.fee,
+                trade.timestamp.isoformat(),
+            ),
+        )
 
         conn.commit()
 

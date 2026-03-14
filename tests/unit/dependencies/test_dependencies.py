@@ -6,8 +6,6 @@ Tests cover:
 - get_container function
 """
 
-import pytest
-
 from gpt_bitcoin.dependencies import get_container
 from gpt_bitcoin.dependencies.container import reset_container
 

@@ -11,9 +11,10 @@ Tests cover:
 Following TDD RED-GREEN-REFACTOR cycle.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
+from unittest.mock import MagicMock
+
+import pytest
 
 
 class TestAsyncSchedulerInitialization:
@@ -32,7 +33,6 @@ class TestAsyncSchedulerInitialization:
     def test_scheduler_with_custom_settings(self):
         """AsyncScheduler should accept custom settings."""
         from gpt_bitcoin.application.scheduler import AsyncScheduler
-        from gpt_bitcoin.config.settings import Settings
 
         settings = MagicMock()
         settings.schedule_times = ["00:01", "08:01", "16:01"]
@@ -49,10 +49,12 @@ class TestAsyncSchedulerJobScheduling:
     def scheduler(self):
         """Create AsyncScheduler instance."""
         from gpt_bitcoin.application.scheduler import AsyncScheduler
+
         return AsyncScheduler()
 
     def test_add_job_with_cron_pattern(self, scheduler):
         """AsyncScheduler should add job with cron pattern."""
+
         async def dummy_job():
             pass
 
@@ -62,6 +64,7 @@ class TestAsyncSchedulerJobScheduling:
 
     def test_add_job_with_interval(self, scheduler):
         """AsyncScheduler should add job with interval."""
+
         async def dummy_job():
             pass
 
@@ -71,6 +74,7 @@ class TestAsyncSchedulerJobScheduling:
 
     def test_add_multiple_jobs(self, scheduler):
         """AsyncScheduler should handle multiple jobs."""
+
         async def job1():
             pass
 
@@ -90,6 +94,7 @@ class TestAsyncSchedulerStartStop:
     def scheduler(self):
         """Create AsyncScheduler instance."""
         from gpt_bitcoin.application.scheduler import AsyncScheduler
+
         return AsyncScheduler()
 
     @pytest.mark.asyncio
@@ -129,6 +134,7 @@ class TestAsyncSchedulerJobExecution:
     def scheduler(self):
         """Create AsyncScheduler instance."""
         from gpt_bitcoin.application.scheduler import AsyncScheduler
+
         return AsyncScheduler()
 
     @pytest.mark.asyncio

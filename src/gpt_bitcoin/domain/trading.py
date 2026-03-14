@@ -19,12 +19,14 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from gpt_bitcoin.domain.trade_history import TradeRecord, TradeType
 from gpt_bitcoin.domain.trading_state import TradingState
 
 if TYPE_CHECKING:
     from gpt_bitcoin.config.settings import Settings
     from gpt_bitcoin.infrastructure.external.upbit_client import UpbitClient
     from gpt_bitcoin.infrastructure.logging import BoundLogger as Logger
+    from gpt_bitcoin.infrastructure.persistence.trade_repository import TradeRepository
 
 
 # =============================================================================
@@ -221,6 +223,7 @@ class TradingService:
         self,
         upbit_client: UpbitClient,
         settings: Settings,
+        trade_repository: TradeRepository | None = None,
         logger: Logger | None = None,
     ):
         """
@@ -229,10 +232,12 @@ class TradingService:
         Args:
             upbit_client: Upbit API client for order execution
             settings: Application settings for configuration
+            trade_repository: Repository for saving trade history (optional)
             logger: Optional logger for logging (creates default if None)
         """
         self._upbit_client = upbit_client
         self._settings = settings
+        self._trade_repository = trade_repository
         self._logger = logger
 
         # Internal state
@@ -279,9 +284,7 @@ class TradingService:
         try:
             # Validate minimum order amount
             if amount_krw < self.MIN_ORDER_KRW:
-                raise ValueError(
-                    f"최소 주문 금액은 {self.MIN_ORDER_KRW:,.0f} KRW입니다"
-                )
+                raise ValueError(f"최소 주문 금액은 {self.MIN_ORDER_KRW:,.0f} KRW입니다")
 
             # Check KRW balance
             krw_balance = await self._upbit_client.get_balance("KRW")
@@ -302,13 +305,9 @@ class TradingService:
             try:
                 orderbook = await self._upbit_client.get_orderbook(ticker)
                 estimated_price = (
-                    orderbook.orderbook_units[0].ask_price
-                    if orderbook.orderbook_units
-                    else None
+                    orderbook.orderbook_units[0].ask_price if orderbook.orderbook_units else None
                 )
-                estimated_quantity = (
-                    amount_krw / estimated_price if estimated_price else None
-                )
+                estimated_quantity = amount_krw / estimated_price if estimated_price else None
             except Exception:
                 # If we can't get price, proceed without estimation
                 estimated_price = None
@@ -390,9 +389,7 @@ class TradingService:
             try:
                 orderbook = await self._upbit_client.get_orderbook(ticker)
                 estimated_price = (
-                    orderbook.orderbook_units[0].bid_price
-                    if orderbook.orderbook_units
-                    else None
+                    orderbook.orderbook_units[0].bid_price if orderbook.orderbook_units else None
                 )
             except Exception:
                 estimated_price = None
@@ -500,7 +497,7 @@ class TradingService:
                     amount=approval.amount,
                 )
 
-            return TradeResult(
+            result = TradeResult(
                 success=True,
                 order_id=order.uuid,
                 ticker=approval.ticker,
@@ -509,6 +506,29 @@ class TradingService:
                 executed_amount=order.executed_volume or order.volume,
                 fee=order.fee,
             )
+
+            # Save trade to repository
+            if self._trade_repository and result.success:
+                try:
+                    trade_type = TradeType.BUY if approval.side == "buy" else TradeType.SELL
+                    trade_record = TradeRecord(
+                        ticker=result.ticker or "",
+                        trade_type=trade_type,
+                        quantity=result.executed_amount or 0.0,
+                        price=result.executed_price or 0.0,
+                        fee=result.fee or 0.0,
+                        timestamp=result.timestamp,
+                    )
+                    self._trade_repository.add_trade(trade_record)
+                except Exception as save_error:
+                    # Don't fail the trade if saving fails
+                    if self._logger:
+                        self._logger.warning(
+                            "Failed to save trade to repository",
+                            error=str(save_error),
+                        )
+
+            return result
 
         except Exception as e:
             # Transition to failed

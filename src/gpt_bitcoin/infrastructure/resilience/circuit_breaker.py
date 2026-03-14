@@ -25,9 +25,10 @@ from __future__ import annotations
 import asyncio
 import functools
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, TypeVar
+from typing import TypeVar
 
 from typing_extensions import ParamSpec
 
@@ -275,7 +276,7 @@ class CircuitBreaker:
             async with self._lock:
                 self.record_success()
             return result
-        except Exception as e:
+        except Exception:
             async with self._lock:
                 self.record_failure()
             raise
@@ -297,11 +298,11 @@ class CircuitBreaker:
             result = func(*args, **kwargs)
             self.record_success()
             return result
-        except Exception as e:
+        except Exception:
             self.record_failure()
             raise
 
-    async def __aenter__(self) -> "CircuitBreaker":
+    async def __aenter__(self) -> CircuitBreaker:
         """Async context manager entry."""
         async with self._lock:
             if not self._should_allow_request():

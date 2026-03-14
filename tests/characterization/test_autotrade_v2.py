@@ -19,13 +19,10 @@ import importlib.util
 import json
 import sqlite3
 import sys
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
-
 
 # Load the legacy module dynamically
 # Note: autotrade_v2.py is the actual v2 code (with percentage, no selenium)
@@ -71,9 +68,7 @@ class TestCharacterizeInitializeDb:
         # Document current behavior: table exists
         with sqlite3.connect(temp_db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='decisions'"
-            )
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='decisions'")
             result = cursor.fetchone()
 
         assert result is not None, "Current behavior: creates 'decisions' table"
@@ -145,25 +140,27 @@ class TestCharacterizeSaveDecisionToDb:
         - Uses datetime('now', 'localtime') for timestamp
         - Inserts all fields including current price
         """
-        with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
-            with patch.object(
+        with (
+            patch("pyupbit.get_orderbook", mock_pyupbit_orderbook),
+            patch.object(
                 autotrade_v2_module,
                 "sqlite3",
                 sqlite3,  # Use real sqlite3 but with test path
-            ):
-                # Override the db_path in the function
-                original_connect = sqlite3.connect
+            ),
+        ):
+            # Override the db_path in the function
+            original_connect = sqlite3.connect
 
-                def mock_connect(path, *args, **kwargs):
-                    if path == "trading_decisions.sqlite":
-                        return original_connect(initialized_test_db, *args, **kwargs)
-                    return original_connect(path, *args, **kwargs)
+            def mock_connect(path, *args, **kwargs):
+                if path == "trading_decisions.sqlite":
+                    return original_connect(initialized_test_db, *args, **kwargs)
+                return original_connect(path, *args, **kwargs)
 
-                with patch("sqlite3.connect", side_effect=mock_connect):
-                    autotrade_v2_module.save_decision_to_db(
-                        sample_decision_buy,
-                        json.dumps(sample_current_status),
-                    )
+            with patch("sqlite3.connect", side_effect=mock_connect):
+                autotrade_v2_module.save_decision_to_db(
+                    sample_decision_buy,
+                    json.dumps(sample_current_status),
+                )
 
         # Document current behavior: record inserted
         with sqlite3.connect(initialized_test_db) as conn:
@@ -341,15 +338,11 @@ class TestCharacterizeGetNewsData:
             result = autotrade_v2_module.get_news_data()
 
         # Document current behavior: returns fallback string
-        assert result == "No news data available.", (
-            "Current behavior: returns fallback on error"
-        )
+        assert result == "No news data available.", "Current behavior: returns fallback on error"
 
         # Document current behavior: prints error
         captured = capsys.readouterr()
-        assert "Error fetching news data:" in captured.out, (
-            "Current behavior: prints error message"
-        )
+        assert "Error fetching news data:" in captured.out, "Current behavior: prints error message"
 
     @pytest.mark.characterization
     def test_characterize_get_news_data_missing_date(
@@ -408,9 +401,7 @@ class TestCharacterizeFetchFearAndGreedIndex:
 
         # Document current behavior: contains expected data
         assert "value" in result, "Current behavior: contains 'value'"
-        assert "value_classification" in result, (
-            "Current behavior: contains 'value_classification'"
-        )
+        assert "value_classification" in result, "Current behavior: contains 'value_classification'"
 
 
 class TestCharacterizeExecuteBuyWithPercentage:
@@ -525,6 +516,7 @@ class TestCharacterizeMakeDecisionAndExecute:
         mock_pyupbit_orderbook,
         mock_serpapi,
         mock_fear_greed_api,
+        initialized_test_db,
         capsys,
     ):
         """
@@ -555,6 +547,13 @@ class TestCharacterizeMakeDecisionAndExecute:
             success_response,
         ]
 
+        original_connect = sqlite3.connect
+
+        def mock_connect(path, *args, **kwargs):
+            if path == "trading_decisions.sqlite":
+                return original_connect(initialized_test_db, *args, **kwargs)
+            return original_connect(path, *args, **kwargs)
+
         with patch.object(autotrade_v2_module, "client", mock_client):
             with patch.object(autotrade_v2_module, "upbit", mock_upbit):
                 with patch("pyupbit.get_ohlcv", mock_pyupbit_ohlcv):
@@ -564,21 +563,16 @@ class TestCharacterizeMakeDecisionAndExecute:
                             "get_instructions",
                             return_value="Test",
                         ):
-                            # Patch time.sleep to avoid delay
-                            with patch("time.sleep"):
-                                autotrade_v2_module.make_decision_and_execute()
+                            with patch("sqlite3.connect", side_effect=mock_connect):
+                                # Patch time.sleep to avoid delay
+                                with patch("time.sleep"):
+                                    autotrade_v2_module.make_decision_and_execute()
 
         # Document current behavior: prints retry message
         captured = capsys.readouterr()
-        assert "JSON parsing failed:" in captured.out, (
-            "Current behavior: prints JSON parse error"
-        )
-        assert "Retrying in 5 seconds..." in captured.out, (
-            "Current behavior: prints retry message"
-        )
-        assert "Attempt 2 of 5" in captured.out, (
-            "Current behavior: prints attempt number"
-        )
+        assert "JSON parsing failed:" in captured.out, "Current behavior: prints JSON parse error"
+        assert "Retrying in 5 seconds..." in captured.out, "Current behavior: prints retry message"
+        assert "Attempt 2 of 5" in captured.out, "Current behavior: prints attempt number"
 
     @pytest.mark.characterization
     def test_characterize_make_decision_max_retries_exceeded(
@@ -587,6 +581,7 @@ class TestCharacterizeMakeDecisionAndExecute:
         mock_upbit,
         mock_pyupbit_ohlcv,
         mock_pyupbit_orderbook,
+        initialized_test_db,
         capsys,
     ):
         """
@@ -601,6 +596,13 @@ class TestCharacterizeMakeDecisionAndExecute:
         mock_response.choices = [MagicMock(message=MagicMock(content="Invalid"))]
         mock_client.chat.completions.create.return_value = mock_response
 
+        original_connect = sqlite3.connect
+
+        def mock_connect(path, *args, **kwargs):
+            if path == "trading_decisions.sqlite":
+                return original_connect(initialized_test_db, *args, **kwargs)
+            return original_connect(path, *args, **kwargs)
+
         with patch.object(autotrade_v2_module, "client", mock_client):
             with patch.object(autotrade_v2_module, "upbit", mock_upbit):
                 with patch("pyupbit.get_ohlcv", mock_pyupbit_ohlcv):
@@ -610,8 +612,9 @@ class TestCharacterizeMakeDecisionAndExecute:
                             "get_instructions",
                             return_value="Test",
                         ):
-                            with patch("time.sleep"):
-                                autotrade_v2_module.make_decision_and_execute()
+                            with patch("sqlite3.connect", side_effect=mock_connect):
+                                with patch("time.sleep"):
+                                    autotrade_v2_module.make_decision_and_execute()
 
         captured = capsys.readouterr()
         assert "Failed to make a decision after maximum retries." in captured.out, (
@@ -622,7 +625,7 @@ class TestCharacterizeMakeDecisionAndExecute:
     def test_characterize_make_decision_calls_all_data_sources(
         self,
         autotrade_v2_module,
-        mock_openai,
+        mock_zhipuai,
         mock_upbit,
         mock_pyupbit_ohlcv,
         mock_pyupbit_orderbook,
@@ -640,7 +643,7 @@ class TestCharacterizeMakeDecisionAndExecute:
         - Calls fetch_fear_and_greed_index(limit=30)
         - Calls get_current_status()
         """
-        with patch.object(autotrade_v2_module, "client", mock_openai):
+        with patch.object(autotrade_v2_module, "client", mock_zhipuai):
             with patch.object(autotrade_v2_module, "upbit", mock_upbit):
                 with patch("pyupbit.get_ohlcv", mock_pyupbit_ohlcv):
                     with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
@@ -654,17 +657,15 @@ class TestCharacterizeMakeDecisionAndExecute:
 
                             def mock_connect(path, *args, **kwargs):
                                 if path == "trading_decisions.sqlite":
-                                    return original_connect(
-                                        initialized_test_db, *args, **kwargs
-                                    )
+                                    return original_connect(initialized_test_db, *args, **kwargs)
                                 return original_connect(path, *args, **kwargs)
 
                             with patch("sqlite3.connect", side_effect=mock_connect):
                                 autotrade_v2_module.make_decision_and_execute()
 
-        # Document current behavior: GPT-4 called with multiple inputs
-        mock_openai.chat.completions.create.assert_called_once()
-        call_kwargs = mock_openai.chat.completions.create.call_args
+        # Document current behavior: GLM called with multiple inputs
+        mock_zhipuai.chat.completions.create.assert_called_once()
+        call_kwargs = mock_zhipuai.chat.completions.create.call_args
         messages = call_kwargs[1]["messages"]
 
         # Should have system message + 5 user messages
@@ -684,30 +685,33 @@ class TestCharacterizeAnalyzeDataWithGpt4:
     def test_characterize_analyze_uses_gpt4_turbo(
         self,
         autotrade_v2_module,
-        mock_openai,
+        mock_zhipuai,
     ):
         """
-        CHARACTERIZES: Uses gpt-4-turbo-preview model
+        CHARACTERIZES: Uses get_default_model() for model selection
 
         Current behavior:
-        - Model name: "gpt-4-turbo-preview"
+        - Model name: determined by get_default_model() (gpt-4-turbo for OpenAI, glm-5 for GLM)
         - response_format: {"type": "json_object"}
         """
-        with patch.object(autotrade_v2_module, "client", mock_openai):
-            with patch.object(
+        with (
+            patch.object(autotrade_v2_module, "client", mock_zhipuai),
+            patch.object(
                 autotrade_v2_module,
                 "get_instructions",
                 return_value="Test",
-            ):
-                autotrade_v2_module.analyze_data_with_gpt4(
-                    "news", "data", "decisions", "fear_greed", "status"
-                )
+            ),
+        ):
+            autotrade_v2_module.analyze_data_with_glm(
+                "news", "data", "decisions", "fear_greed", "status"
+            )
 
-        call_kwargs = mock_openai.chat.completions.create.call_args[1]
+        call_kwargs = mock_zhipuai.chat.completions.create.call_args[1]
 
-        # Document current behavior: uses gpt-4-turbo-preview
-        assert call_kwargs["model"] == "gpt-4-turbo-preview", (
-            "Current behavior: uses gpt-4-turbo-preview model"
+        # Document current behavior: uses get_default_model() which returns provider's default
+        # When GLM_API_KEY is not set (test env), falls back to OpenAI and uses gpt-4-turbo
+        assert call_kwargs["model"] == "gpt-4-turbo", (
+            "Current behavior: uses gpt-4-turbo when GLM_API_KEY not available"
         )
 
         # Document current behavior: requests JSON response
@@ -719,7 +723,7 @@ class TestCharacterizeAnalyzeDataWithGpt4:
     def test_characterize_analyze_reads_instructions_v2(
         self,
         autotrade_v2_module,
-        mock_openai,
+        mock_zhipuai,
     ):
         """
         CHARACTERIZES: Reads from instructions_v2.md
@@ -727,15 +731,17 @@ class TestCharacterizeAnalyzeDataWithGpt4:
         Current behavior:
         - Instructions file path: "instructions_v2.md"
         """
-        with patch.object(autotrade_v2_module, "client", mock_openai):
-            with patch.object(
+        with (
+            patch.object(autotrade_v2_module, "client", mock_zhipuai),
+            patch.object(
                 autotrade_v2_module,
                 "get_instructions",
-            ) as mock_get_instructions:
-                mock_get_instructions.return_value = "Test instructions"
-                autotrade_v2_module.analyze_data_with_gpt4(
-                    "news", "data", "decisions", "fear_greed", "status"
-                )
+            ) as mock_get_instructions,
+        ):
+            mock_get_instructions.return_value = "Test instructions"
+            autotrade_v2_module.analyze_data_with_glm(
+                "news", "data", "decisions", "fear_greed", "status"
+            )
 
         # Document current behavior: reads instructions_v2.md
         mock_get_instructions.assert_called_once_with("instructions_v2.md")

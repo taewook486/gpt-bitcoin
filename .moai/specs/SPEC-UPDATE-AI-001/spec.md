@@ -1,148 +1,43 @@
-# SPEC-UPDATE-AI-001: GLM-5 Migration
+# SPEC: GLM-5 AI Model Migration
 
 **SPEC ID**: SPEC-UPDATE-AI-001
-**Title**: GLM-5 AI Model Migration for Auto-Trading System
-**Created**: 2026-03-02
-**Updated**: 2026-03-02 (Added dual provider strategy)
+**Title**: GLM-5 AI Model Migration
+**Created**: 2026-03-14
+**Updated**: 2026-03-14
 **Status**: Planned
 **Priority**: High
-**Assigned**: expert-backend
-
----
-
-## Problem Analysis
-
-### Current State
-
-The gpt-bitcoin auto-trading system currently uses OpenAI GPT models across three versions:
-
-- **autotrade.py (v1)**: Uses `gpt-4-turbo-preview` (lines 13, 102)
-- **autotrade_v2.py (v2)**: Uses `gpt-4-turbo-preview` (lines 16, 231)
-- **autotrade_v3.py (v3)**: Uses `gpt-4o` with vision capabilities (lines 22, 292)
-
-### Root Cause Analysis (Five Whys)
-
-**Surface Problem**: System depends on OpenAI API with associated costs and availability constraints.
-
-**First Why**: Why use OpenAI? → Initial development chose GPT-4 for advanced reasoning capabilities.
-
-**Second Why**: Why change now? → GLM-5 offers comparable performance with better cost efficiency and regional availability.
-
-**Third Why**: Why GLM-5 specifically? → Supports Korean language natively, competitive pricing, and offers vision capabilities matching v3 requirements.
-
-**Fourth Why**: Why migrate all versions? → Ensures consistency across the codebase and simplifies maintenance.
-
-**Root Cause**: Strategic decision to optimize operational costs while maintaining decision quality through regional AI service adoption.
-
-### Assumptions
-
-| Assumption | Confidence | Evidence | Risk if Wrong | Validation |
-|------------|------------|----------|---------------|------------|
-| GLM-5 API is compatible with OpenAI SDK | Medium | Both follow similar chat completion patterns | Need custom client implementation | API documentation review |
-| GLM-5 supports JSON response format | High | Common feature in modern LLMs | Response parsing changes required | Test API call with response_format |
-| GLM-5 vision matches GPT-4o quality | Medium | Claimed in documentation | v3 chart analysis quality may degrade | A/B testing required |
-| Token limits are sufficient | High | GLM-5 has 128K context window | None expected | Monitor token usage |
-| API rate limits accommodate schedule | High | 3 calls per day schedule | May need retry logic | Test during peak hours |
+**Lifecycle Level**: spec-anchored
 
 ---
 
 ## Environment
 
-### Technology Stack (Current)
+### System Context
 
-- **Language**: Python 3.x
-- **AI Client**: `openai` package
-- **API Provider**: OpenAI
-- **Models**: gpt-4-turbo-preview, gpt-4o
-- **Environment Variables**: OPENAI_API_KEY
+이 시스템은 GPT-Bitcoin 자동매매 플랫폼의 AI 의사결정 엔진 마이그레이션을 다룹니다. 현재 시스템은 다음과 같은 환경에서 운영됩니다:
 
-### Technology Stack (Target)
+- **플랫폼**: Python 3.13+ 기반 자동매매 시스템
+- **대상 파일**: autotrade.py, autotrade_v2.py, autotrade_v3.py
+- **외부 API**: Upbit 거래소 API, GLM-5 (Zhipu AI), OpenAI API
+- **데이터 저장**: SQLite (v2), 로그 파일
+- **스케줄링**: schedule 라이브러리를 통한 정기 실행
 
-- **Language**: Python 3.x (unchanged)
-- **AI Client**: OpenAI-compatible client with provider abstraction
-- **API Provider**: Dual provider mode
-  - Primary: Zhipu AI (GLM-5)
-  - Fallback: OpenAI (GPT-4o)
-- **Models**: glm-5 (text), glm-5-vision (for v3)
-- **Environment Variables**:
-  - GLM_API_KEY (primary)
-  - GLM_API_BASE (endpoint configuration)
-  - OPENAI_API_KEY (fallback, retained)
+### Current State
 
-### Infrastructure
-
-- **Runtime**: Local execution with schedule-based triggers
-- **Data Storage**: SQLite (trading_decisions.sqlite)
-- **External APIs**: Upbit exchange, SERPAPI, Fear & Greed Index
-- **Dependencies**: requirements.txt
-
----
-
-## Dual Provider Architecture
-
-### Overview
-
-The system implements a dual provider strategy to ensure high availability and seamless migration:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   AI Client Factory                      │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Primary: GLM-5 (Zhipu AI)                     │    │
-│  │  - GLM_API_KEY                                 │    │
-│  │  - GLM_API_BASE                                │    │
-│  │  - Cost efficient                              │    │
-│  │  - Korean language optimized                   │    │
-│  └─────────────────────────────────────────────────┘    │
-│                         │                              │
-│                         ▼                              │
-│                   [Try First]                          │
-│                         │                              │
-│                   [Fail?] ──────┐                       │
-│                         │        │                     │
-│                         │        ▼                     │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Fallback: OpenAI (GPT-4o)                     │    │
-│  │  - OPENAI_API_KEY                              │    │
-│  │  - Proven reliability                          │    │
-│  │  - Vision capabilities                         │    │
-│  │  - Backup assurance                            │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Benefits
-
-1. **High Availability**: Automatic fallback prevents service disruption
-2. **Zero Downtime Migration**: Gradual transition without stopping scheduled trades
-3. **A/B Testing**: Compare GLM-5 vs OpenAI decision quality
-4. **Cost Optimization**: Use GLM-5 primary (lower cost), OpenAI fallback only when needed
-5. **Risk Mitigation**: Quick rollback if GLM-5 underperforms
-6. **Provider Independence**: Easy to add more providers in the future
-
-### Provider Selection Logic
+현재 시스템은 GLM-5 (ZhipuAI)를 사용 중이며, OpenAI API는 폴백 용도로 유지됩니다:
 
 ```python
-def get_ai_client():
-    # Priority 1: GLM-5 (if configured)
-    if GLM_API_KEY exists:
-        try GLM-5 client
-        return on success
-
-    # Priority 2: OpenAI (fallback)
-    if OPENAI_API_KEY exists:
-        return OpenAI client
-
-    # Error: No provider available
-    raise ConfigurationError
+from zhipuai import ZhipuAI
+client = ZhipuAI(api_key=os.getenv("ZHIPUAI_API_KEY"))
 ```
 
-### Monitoring Requirements
+### Target State
 
-- Log provider selection for each API call
-- Track fallback frequency (alert if > 10%)
-- Compare response times between providers
-- Monitor cost per decision by provider
+듀얼 프로바이더 아키텍처로 마이그레이션하여 안정성과 비용 효율성을 모두 확보:
+
+1. **Primary Provider**: GLM-5 (Zhipu AI) - 60-70% 비용 절감
+2. **Fallback Provider**: OpenAI API - 안정성 보장
+3. **자동 장애 조치**: GLM-5 실패 시 OpenAI로 자동 전환
 
 ---
 
@@ -150,267 +45,421 @@ def get_ai_client():
 
 ### Technical Assumptions
 
-1. **API Compatibility**: GLM-5 provides OpenAI-compatible chat completion endpoint
-2. **JSON Output**: GLM-5 supports structured JSON output via response_format parameter
-3. **Vision Support**: GLM-5 vision model accepts base64-encoded images like GPT-4o
-4. **Token Limits**: Current prompts fit within GLM-5 context window
-5. **Rate Limits**: GLM-5 API accommodates 3 daily calls without throttling
+1. **API 호환성**: GLM-5 API는 OpenAI SDK와 호환되는 엔드포인트를 제공함
+   - Confidence: High
+   - Evidence: GLM-5 공식 문서에서 OpenAI 호환 모드 지원 확인
+   - Risk if wrong: 커스텀 어댑터 구현 필요 (2-3일 추가 개발)
+
+2. **Vision API 지원**: GLM-5 Vision 모델이 base64 인코딩된 이미지를 처리 가능
+   - Confidence: Medium
+   - Evidence: GLM-4V 모델 문서 존재, v3 호환성 미확인
+   - Risk if wrong: v3에서 Vision 기능 비활성화 또는 OpenAI 전용 처리 필요
+
+3. **응답 품질**: GLM-5의 트레이딩 의사결정 품질이 GPT-4와 동등함
+   - Confidence: Medium
+   - Evidence: GLM-5 벤치마크 결과, 실제 트레이딩 도메인 테스트 필요
+   - Risk if wrong: 프롬프트 최적화 또는 OpenAI 유지 필요
 
 ### Business Assumptions
 
-1. **Cost Reduction**: GLM-5 provides at least 50% cost reduction vs OpenAI
-2. **Performance Parity**: Decision quality maintains or improves post-migration
-3. **Availability**: GLM-5 API reliability meets 99% uptime requirement
-4. **Compliance**: Data handling meets regional regulatory requirements
+1. **비용 절감**: GLM-5 사용 시 60-70% 비용 절감 달성
+   - Confidence: High
+   - Evidence: GLM-5 가격 정책 (GPT-4 대비 30-40% 가격)
+   - Risk if wrong: 예상보다 낮은 절감 효과
 
-### Migration Assumptions
+2. **서비스 안정성**: Zhipu AI 서비스의 가용성이 99% 이상임
+   - Confidence: Medium
+   - Evidence: SLA 문서 미확인, 커뮤니티 피드백 필요
+   - Risk if wrong: 빈번한 폴백으로 인한 OpenAI 의존도 증가
 
-1. **Backward Compatibility**: Fallback to OpenAI possible if migration fails
-2. **Testing Window**: 1-week testing period sufficient for validation
-3. **Zero Downtime**: Migration can occur without stopping scheduled trades
-4. **Rollback Plan**: Git version control enables instant rollback
+### Integration Assumptions
+
+1. **타임아웃 호환성**: GLM-5 응답 시간이 10초 이내
+   - Confidence: High
+   - Evidence: GLM-5 공식 문서의 평균 응답 시간
+   - Risk if wrong: 타임아웃 설정 조정 필요
+
+2. **Rate Limit**: GLM-5의 Rate Limit이 현재 트레이딩 빈도를 수용 가능
+   - Confidence: Medium
+   - Evidence: 분당 60회 호출 제한, 실제 사용 패턴 분석 필요
+   - Risk if wrong: Rate Limit 조정 또는 스케줄링 변경 필요
 
 ---
 
-## Requirements (EARS Format)
+## Requirements
 
-### Ubiquitous Requirements (System-Wide)
+### Ubiquitous Requirements (Always Active)
 
-**REQ-001**: The system **shall** authenticate with GLM-5 API using GLM_API_KEY environment variable for all AI model invocations.
+**REQ-001: 환경 변수 기반 인증**
+시스템은 **항상** 환경 변수에서 API 키를 로드하여 인증을 수행해야 한다.
 
-**REQ-002**: The system **shall** use JSON response format for structured decision output across all versions (v1, v2, v3).
+**REQ-002: JSON 응답 파싱**
+시스템은 **항상** AI 모델의 응답을 JSON 형식으로 파싱하여 트레이딩 의사결정을 추출해야 한다.
 
-**REQ-003**: The system **shall** maintain consistent decision schema with fields: decision, percentage, reason.
+**REQ-003: 에러 로깅**
+시스템은 **항상** 모든 API 호출 실패를 표준 로그 형식으로 기록해야 한다.
 
-**REQ-004**: The system **shall** log all API calls with timestamp, model version, token usage, and response status.
+**REQ-004: 안전한 키 관리**
+시스템은 **항상** API 키를 소스 코드에서 분리하여 관리해야 한다 (.env 파일 사용).
 
-### Event-Driven Requirements (Trigger-Response)
+**REQ-005: 타임아웃 설정**
+시스템은 **항상** API 호출에 대해 최소 10초, 최대 30초의 타임아웃을 적용해야 한다.
 
-**REQ-005**: **WHEN** `make_decision_and_execute()` is triggered by schedule, **THEN** the system **shall** invoke GLM-5 chat completion API within 5 seconds.
+### Event-Driven Requirements
 
-**REQ-006**: **WHEN** API call fails with network error, **THEN** the system **shall** retry up to 5 times with 5-second exponential backoff.
+**REQ-010: 듀얼 프로바이더 초기화**
+**WHEN** 시스템이 시작될 때 **THEN** 시스템은 GLM-5를 1차 프로바이더로, OpenAI를 폴백 프로바이더로 초기화해야 한다.
 
-**REQ-007**: **WHEN** API call returns non-200 status code, **THEN** the system **shall** log error details and proceed to retry logic.
+**REQ-011: 자동 폴백 트리거**
+**WHEN** GLM-5 API 호출이 실패할 때 **THEN** 시스템은 자동으로 OpenAI API로 재시도해야 한다.
 
-**REQ-008**: **WHEN** v3 captures chart screenshot, **THEN** the system **shall** encode image as base64 and include in GLM-5 vision API request.
+**REQ-012: 성공적 응답 처리**
+**WHEN** AI 모델이 유효한 JSON 응답을 반환할 때 **THEN** 시스템은 트레이딩 의사결정을 실행해야 한다.
 
-**REQ-009**: **WHEN** JSON parsing fails after successful API call, **THEN** the system **shall** retry API call with explicit JSON format instruction.
+**REQ-013: Rate Limit 감지**
+**WHEN** API가 429 상태 코드를 반환할 때 **THEN** 시스템은 exponential backoff로 재시도해야 한다.
 
-### State-Driven Requirements (Conditional)
+**REQ-014: 인증 실패 처리**
+**WHEN** API 키가 유효하지 않을 때 **THEN** 시스템은 즉시 실행을 중단하고 명확한 에러 메시지를 출력해야 한다.
 
-**REQ-010**: **IF** environment variable GLM_API_KEY is set, **THEN** the system **shall** use GLM-5 as primary AI provider. **IF** GLM_API_KEY is not set or GLM-5 fails, **THEN** the system **shall** automatically fall back to OpenAI using OPENAI_API_KEY.
+**REQ-015: 네트워크 오류 복구**
+**WHEN** 네트워크 연결이 실패할 때 **THEN** 시스템은 최대 5회 재시도 후 폴백 프로바이더로 전환해야 한다.
 
-**REQ-010-A**: **WHEN** falling back from GLM-5 to OpenAI, **THEN** the system **shall** log the fallback event with timestamp and reason for transparency.
+**REQ-016: Vision API 호출 (v3)**
+**WHEN** autotrade_v3가 차트 스크린샷을 분석할 때 **THEN** 시스템은 base64 인코딩된 이미지를 Vision 모델에 전송해야 한다.
 
-**REQ-011**: **IF** GLM-5 API response exceeds 10-second timeout, **THEN** the system **shall** cancel request and fall back to OpenAI for that invocation.
+### State-Driven Requirements
 
-**REQ-012**: **IF** token usage exceeds 100,000 tokens per call, **THEN** the system **shall** log warning for cost monitoring.
+**REQ-020: 프로바이더 상태 추적**
+**IF** GLM-5 프로바이더가 연속 3회 실패 상태 **THEN** 시스템은 다음 5분간 OpenAI를 기본 프로바이더로 사용해야 한다.
 
-**REQ-013**: **IF** vision model is unavailable for v3, **THEN** the system **shall** fall back to text-only analysis with degraded functionality warning.
+**REQ-021: 폴백 상태 로깅**
+**IF** 폴백 프로바이더가 활성화된 상태 **THEN** 시스템은 모든 호출을 "FALLBACK" 접두사와 함께 로깅해야 한다.
 
-**REQ-014**: **IF** API rate limit is reached, **THEN** the system **shall** pause execution and resume after 60-second cooldown.
+**REQ-022: Vision 모델 호환성 (v3)**
+**IF** GLM-5 Vision 모델이 호환되지 않는 상태 **THEN** 시스템은 텍스트 전용 분석으로 자동 전환하거나 OpenAI Vision을 사용해야 한다.
 
-### Unwanted Behavior Requirements (Prohibited Actions)
+**REQ-023: 토큰 사용량 모니터링**
+**IF** 일일 토큰 사용량이 예산의 80%를 초과하는 상태 **THEN** 시스템은 경고 로그를 출력해야 한다.
 
-**REQ-015**: The system **shall not** store GLM_API_KEY in source code or version control.
+### Unwanted Behavior Requirements
 
-**REQ-016**: The system **shall not** expose API keys in logs or error messages.
+**REQ-030: 무한 재시도 방지**
+시스템은 **반드시** 동일한 요청에 대해 5회 이상의 재시도를 수행해서는 안 된다.
 
-**REQ-017**: The system **shall not** proceed with trade execution if AI decision parsing fails.
+**REQ-031: 민감 정보 노출 방지**
+시스템은 **반드시** API 키를 로그 파일이나 에러 메시지에 노출해서는 안 된다.
 
-**REQ-018**: The system **shall not** cache API responses for longer than current session to ensure fresh analysis.
+**REQ-032: 블로킹 호출 방지**
+시스템은 **반드시** 메인 스레드에서 무기한 대기하는 블로킹 API 호출을 수행해서는 안 된다.
 
-**REQ-019**: The system **shall not** use deprecated GLM-4 models after migration completion.
+**REQ-033: 무효 트레이딩 방지**
+시스템은 **반드시** API 실패 시 자동으로 트레이딩을 실행해서는 안 된다 (명시적인 hold 상태 유지).
 
-### Optional Requirements (Enhancement Features)
+**REQ-034: 중복 주문 방지**
+시스템은 **반드시** 타임아웃 발생 시 중복 주문이 발생하지 않도록 보장해야 한다.
 
-**REQ-020**: **Where possible**, the system should support dual-provider mode (GLM-5 primary, OpenAI fallback) for reliability.
+### Optional Requirements
 
-**REQ-021**: **Where possible**, the system should implement A/B testing framework to compare GLM-5 vs GPT-4 decision quality.
+**REQ-040: A/B 테스트 프레임워크**
+**가능하면** GLM-5와 OpenAI의 의사결정 품질을 비교하는 A/B 테스트 기능을 제공한다.
 
-**REQ-022**: **Where possible**, the system should expose model selection via environment variable for runtime switching.
+**REQ-041: 프롬프트 최적화**
+**가능하면** GLM-5에 특화된 프롬프트 최적화를 수행한다.
 
-**REQ-023**: **Where possible**, the system should collect decision quality metrics for continuous evaluation.
+**REQ-042: 비용 대시보드**
+**가능하면** 실시간 비용 절감 현황을 시각화하는 대시보드를 제공한다.
+
+**REQ-043: 품질 메트릭**
+**가능하면** 의사결정 품질을 추적하는 메트릭 수집 시스템을 구현한다.
 
 ---
 
 ## Specifications
 
-### API Client Changes
+### Functional Specifications
 
-#### Current Implementation (autotrade_v3.py lines 22, 291-303)
+**SPEC-F001: AI Client Factory**
 
-```python
-from openai import OpenAI
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[...],
-    response_format={"type":"json_object"}
-)
-```
-
-#### Target Implementation
+듀얼 프로바이더를 지원하는 클라이언트 팩토리 함수 구현:
 
 ```python
-# Option A: Direct GLM-5 Client
-from zhipuai import ZhipuAI
+# ai_client_factory.py
+def get_ai_client() -> OpenAI:
+    """
+    듀얼 프로바이더 AI 클라이언트 팩토리
 
-client = ZhipuAI(api_key=os.getenv("GLM_API_KEY"))
+    Priority:
+    1. GLM-5 (primary) - GLM_API_KEY 설정 시
+    2. OpenAI (fallback) - GLM-5 실패 또는 미설정 시
 
-response = client.chat.completions.create(
-    model="glm-5",  # or "glm-5-vision" for v3
-    messages=[...],
-    response_format={"type":"json_object"}
-)
-
-# Option B: OpenAI-Compatible Endpoint (if available)
-from openai import OpenAI
-
-client = OpenAI(
-    api_key=os.getenv("GLM_API_KEY"),
-    base_url="https://open.bigmodel.cn/api/paas/v4/"
-)
-
-response = client.chat.completions.create(
-    model="glm-5",
-    messages=[...],
-    response_format={"type":"json_object"}
-)
+    Returns:
+        OpenAI: 설정된 클라이언트 인스턴스
+    """
+    pass
 ```
 
-### File Modification Matrix
+**SPEC-F002: Retry Logic with Exponential Backoff**
 
-| File | Lines | Current | Target | Changes Required |
-|------|-------|---------|--------|------------------|
-| autotrade.py | 8, 13, 102 | OpenAI client, gpt-4-turbo-preview | GLM-5 client, glm-5 | Import, client init, model name |
-| autotrade_v2.py | 8, 16, 231 | OpenAI client, gpt-4-turbo-preview | GLM-5 client, glm-5 | Import, client init, model name |
-| autotrade_v3.py | 8, 22, 292 | OpenAI client, gpt-4o | GLM-5 client, glm-5-vision | Import, client init, model name, vision API |
-| requirements.txt | 2 | openai | zhipuai (or keep openai for compatible mode) | Dependency update |
-| .env | N/A | OPENAI_API_KEY | GLM_API_KEY | Environment variable |
-| instructions_v3.md | N/A | GPT-4o prompt format | GLM-5 prompt optimization | Prompt refinement (optional) |
+```python
+def call_with_retry(
+    client: OpenAI,
+    messages: list,
+    model: str,
+    max_retries: int = 5,
+    initial_delay: float = 1.0
+) -> dict:
+    """
+    Exponential backoff를 적용한 API 호출
 
-### Environment Variable Configuration
+    Args:
+        client: AI 클라이언트
+        messages: 메시지 리스트
+        model: 모델명
+        max_retries: 최대 재시도 횟수
+        initial_delay: 초기 지연 시간 (초)
+
+    Returns:
+        dict: API 응답
+    """
+    pass
+```
+
+**SPEC-F003: Vision API Adapter (v3)**
+
+```python
+def prepare_vision_message(
+    text_prompt: str,
+    base64_image: str,
+    provider: str
+) -> list:
+    """
+    Vision API 메시지 형식을 프로바이더에 맞게 변환
+
+    Args:
+        text_prompt: 텍스트 프롬프트
+        base64_image: base64 인코딩된 이미지
+        provider: "glm" 또는 "openai"
+
+    Returns:
+        list: 프로바이더 호환 메시지 리스트
+    """
+    pass
+```
+
+**SPEC-F004: Provider Health Check**
+
+```python
+def check_provider_health(client: OpenAI) -> bool:
+    """
+    프로바이더 상태 확인
+
+    Args:
+        client: AI 클라이언트
+
+    Returns:
+        bool: 프로바이더 사용 가능 여부
+    """
+    pass
+```
+
+### Non-Functional Specifications
+
+**SPEC-NF001: Performance Requirements**
+
+- **응답 시간**: P95 지연 시간 10초 이내
+- **처리량**: 분당 최소 10회 API 호출 지원
+- **메모리**: 추가 메모리 사용량 50MB 이내
+- **CPU**: 유휴 상태에서 CPU 사용률 5% 이내
+
+**SPEC-NF002: Reliability Requirements**
+
+- **가용성**: 99.5% 이상 (듀얼 프로바이더 활용)
+- **폴백 전환 시간**: 5초 이내
+- **데이터 무결성**: 트레이딩 의사결정 0% 손실
+- **에러 복구 시간**: 평균 30초 이내
+
+**SPEC-NF003: Security Requirements**
+
+- **API 키 보호**: 환경 변수 암호화 (선택적)
+- **전송 보안**: HTTPS 필수 사용
+- **감사 로그**: 모든 API 호출에 대한 추적 로그
+- **접근 제어**: API 키별 권한 관리
+
+**SPEC-NF004: Maintainability Requirements**
+
+- **코드 커버리지**: 85% 이상
+- **문서화**: 모든 공개 함수에 대한 docstring
+- **로깅 표준**: 구조화된 JSON 로그 형식
+- **설정 외부화**: 모든 설정 값 환경 변수화
+
+### Interface Specifications
+
+**SPEC-I001: Environment Variables**
 
 ```bash
-# Current
-OPENAI_API_KEY=sk-proj-xxxxx
-
-# Target (additive)
+# Primary Provider (GLM-5)
 GLM_API_KEY=your_glm_api_key_here
+GLM_API_BASE=https://open.bigmodel.cn/api/paas/v4/
+GLM_MODEL=glm-5  # or glm-5-vision for v3
 
-# Optional fallback
-OPENAI_API_KEY=sk-proj-xxxxx  # Keep for fallback if dual-provider enabled
-AI_PROVIDER=glm  # Options: glm, openai
+# Fallback Provider (OpenAI)
+OPENAI_API_KEY=sk-proj-xxxxx
+OPENAI_MODEL=gpt-4-turbo  # or gpt-4o for v3
+
+# Provider Selection (optional override)
+AI_PROVIDER=glm  # "glm" or "openai" or "auto" (default)
+
+# Retry Configuration
+AI_MAX_RETRIES=5
+AI_INITIAL_DELAY=1.0
+AI_TIMEOUT=30
+
+# Health Check
+AI_HEALTH_CHECK_INTERVAL=300  # seconds
+AI_FAILURE_THRESHOLD=3  # consecutive failures
 ```
 
-### Model Selection Strategy
+**SPEC-I002: Configuration Schema**
 
-| Version | Current Model | Target Model | Reason |
-|---------|--------------|--------------|--------|
-| v1 | gpt-4-turbo-preview | glm-5 | Standard text analysis |
-| v2 | gpt-4-turbo-preview | glm-5 | Standard text analysis |
-| v3 | gpt-4o | glm-5-vision | Vision-enabled chart analysis |
+```python
+@dataclass
+class AIProviderConfig:
+    """AI 프로바이더 설정"""
+    glm_api_key: str | None = None
+    glm_api_base: str = "https://open.bigmodel.cn/api/paas/v4/"
+    glm_model: str = "glm-5"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4-turbo"
+    provider: str = "auto"  # "glm", "openai", "auto"
+    max_retries: int = 5
+    initial_delay: float = 1.0
+    timeout: int = 30
+```
 
-### JSON Response Schema
+**SPEC-I003: Error Response Format**
+
+```python
+@dataclass
+class AICallError:
+    """API 호출 에러 정보"""
+    provider: str  # "glm" or "openai"
+    error_type: str  # "auth", "network", "rate_limit", "timeout"
+    message: str
+    retry_count: int
+    timestamp: datetime
+    fallback_used: bool
+```
+
+**SPEC-I004: Log Format**
 
 ```json
 {
-  "decision": "buy|sell|hold",
-  "percentage": 0-100,
-  "reason": "string explanation"
+  "timestamp": "2026-03-14T10:30:00Z",
+  "level": "INFO",
+  "provider": "glm",
+  "model": "glm-5",
+  "response_time_ms": 1234,
+  "tokens_used": 500,
+  "fallback_triggered": false,
+  "error": null
 }
 ```
 
-### Error Handling Strategy
+### Constraint Specifications
 
-| Error Type | Current Behavior | Target Behavior |
-|------------|------------------|-----------------|
-| Network timeout | Retry 5 times, 5s delay | Same, add timeout config |
-| Authentication failure | Print error, return None | Raise exception with clear message |
-| Rate limit exceeded | No handling | Pause 60s, retry with backoff |
-| JSON parse failure | Retry 5 times | Same, add schema validation |
-| Vision API failure | N/A | Fall back to text-only mode |
+**SPEC-C001: GLM-5 API Limits**
 
----
+- **Rate Limit**: 분당 60회 호출
+- **최대 토큰**: 요청당 8,000 토큰
+- **타임아웃**: 30초 권장, 60초 최대
+- **동시 연결**: 최대 10개
 
-## Constraints
+**SPEC-C002: OpenAI API Limits (Fallback)**
 
-### Technical Constraints
+- **Rate Limit**: 계정별 상이 (기본 3,000 RPM)
+- **최대 토큰**: 모델별 상이 (GPT-4: 8,192)
+- **타임아웃**: 30초 권장
+- **동시 연결**: 제한 없음
 
-1. **Python Version**: Must maintain compatibility with Python 3.8+
-2. **Dependency Size**: Minimize new dependencies to reduce deployment complexity
-3. **API Latency**: GLM-5 response time must be < 10 seconds for scheduled execution
-4. **Memory Footprint**: No significant increase in memory usage
-5. **Code Structure**: Maintain existing function signatures for backward compatibility
+**SPEC-C003: Vision API Constraints (v3)**
 
-### Business Constraints
+- **이미지 크기**: 최대 20MB
+- **지원 형식**: JPEG, PNG, WebP
+- **해상도**: 최대 4K (4096x4096)
+- **처리 시간**: 텍스트 전용 대비 2-3배 증가 예상
 
-1. **Budget**: Migration cost < 2 hours development time
-2. **Risk Tolerance**: Zero tolerance for trading execution failures
-3. **Testing Period**: 1-week validation window before production deployment
-4. **Rollback Time**: < 5 minutes to revert to OpenAI if critical issues arise
+**SPEC-C004: Budget Constraints**
 
-### Regulatory Constraints
-
-1. **Data Privacy**: API calls must comply with regional data protection regulations
-2. **Audit Trail**: All AI decisions must remain traceable in SQLite database
-3. **Financial Compliance**: No changes to trade execution logic
-
----
-
-## Success Metrics
-
-### Technical Metrics
-
-- **API Call Success Rate**: > 99% (matching current OpenAI performance)
-- **Response Latency P95**: < 8 seconds
-- **Error Recovery Time**: < 30 seconds (automatic retry)
-- **Code Coverage**: > 85% for modified modules
-
-### Business Metrics
-
-- **Cost per Decision**: < 50% of OpenAI cost
-- **Decision Quality**: Maintain or improve based on backtesting
-- **System Availability**: 99.5% uptime during trading hours
-- **Migration Duration**: Complete within 1 week
-
-### Quality Metrics
-
-- **Linter Errors**: 0 (ruff validation)
-- **Type Errors**: 0 (mypy validation)
-- **Security Vulnerabilities**: 0 (OWASP compliance)
-- **Documentation Coverage**: 100% for modified functions
-
----
-
-## Related SPECs
-
-- None (initial migration)
+- **일일 예산**: $50 (GLM-5) + $20 (OpenAI 폴백)
+- **월간 목표 절감**: 60-70%
+- **알림 임계값**: 80% 사용 시 경고
 
 ---
 
 ## Traceability
 
-| Requirement | Implementation | Test | Documentation |
-|-------------|----------------|------|---------------|
-| REQ-001 | client initialization | test_auth.py | API setup guide |
-| REQ-005 | analyze_data_with_gpt4() | test_api_call.py | Function docstring |
-| REQ-006 | retry logic | test_retry.py | Error handling guide |
-| REQ-008 | get_current_base64_image() | test_vision.py | Vision API docs |
-| REQ-015 | .env configuration | test_security.py | Security guidelines |
+### Requirement to Implementation Mapping
+
+| Requirement | Implementation | Test File |
+|-------------|----------------|-----------|
+| REQ-001 | ai_client_factory.py:get_ai_client() | test_glm_client.py:test_env_auth() |
+| REQ-010 | ai_client_factory.py:get_ai_client() | test_glm_client.py:test_dual_provider_init() |
+| REQ-011 | retry_handler.py:call_with_retry() | test_glm_client.py:test_auto_fallback() |
+| REQ-013 | retry_handler.py:exponential_backoff() | test_glm_client.py:test_rate_limit() |
+| REQ-016 | vision_adapter.py:prepare_vision_message() | test_autotrade_v3.py:test_vision_api() |
+| REQ-020 | provider_health.py:track_failures() | test_glm_client.py:test_provider_switching() |
+| REQ-030 | retry_handler.py:max_retries_check | test_glm_client.py:test_max_retries() |
+| SPEC-F001 | ai_client_factory.py | test_ai_factory.py |
+| SPEC-F002 | retry_handler.py | test_retry_handler.py |
+| SPEC-F003 | vision_adapter.py | test_vision_adapter.py |
+
+### Tag References
+
+이 SPEC은 다음 @MX 태그와 연관됨:
+- `@MX:ANCHOR`: get_ai_client() - 듀얼 프로바이더 진입점
+- `@MX:NOTE`: call_with_retry() - 재시도 로직 설명
+- `@MX:WARN`: API 키 관련 코드 - 민감 정보 처리 주의
 
 ---
 
-## Lifecycle Level
+## Quality Gates
 
-**Level 2: spec-anchored**
+### Pre-Implementation Checklist
 
-This SPEC will be maintained alongside implementation for ongoing evolution. Quarterly review scheduled to assess GLM-5 performance and potential updates.
+- [ ] GLM-5 API 키 획득 완료
+- [ ] GLM-5 API 문서 검토 완료
+- [ ] 테스트 환경 구축 완료
+- [ ] .env.example 업데이트 완료
+
+### Implementation Checklist
+
+- [ ] ai_client_factory.py 구현 완료
+- [ ] retry_handler.py 구현 완료
+- [ ] vision_adapter.py 구현 완료 (v3)
+- [ ] autotrade.py 마이그레이션 완료
+- [ ] autotrade_v2.py 마이그레이션 완료
+- [ ] autotrade_v3.py 마이그레이션 완료
+
+### Post-Implementation Checklist
+
+- [ ] 단위 테스트 커버리지 85% 달성
+- [ ] 통합 테스트 통과
+- [ ] 회귀 테스트 통과
+- [ ] 성능 테스트 통과
+- [ ] 보안 감사 통과
 
 ---
 
-**Last Updated**: 2026-03-02
-**Next Review**: 2026-04-02
+## Related Documents
+
+- **Implementation Plan**: plan.md
+- **Acceptance Criteria**: acceptance.md
+- **Migration Guide**: .moai/docs/glm-migration-guide.md (to be created)
+- **API Documentation**: .moai/docs/api-reference.md (to be updated)
+
+---
+
+**Last Updated**: 2026-03-14
+**Review Schedule**: Weekly during implementation
+**Next Review**: 2026-03-21

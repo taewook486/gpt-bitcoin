@@ -22,9 +22,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
-
 
 # Load the legacy module dynamically
 # Note: autotrade_v3.py is the actual v3 code (with selenium and GPT-4o)
@@ -204,87 +202,86 @@ class TestCharacterizeGetCurrentBase64Image:
 
 class TestCharacterizeAnalyzeDataWithGpt4:
     """
-    Characterization tests for analyze_data_with_gpt4 function (v3).
+    Characterization tests for analyze_data_with_glm function (v3).
 
-    Documents the current behavior of GPT-4o with vision capabilities.
+    Documents the current behavior of GLM-4.6v with vision capabilities.
     """
 
     @pytest.mark.characterization
     def test_characterize_analyze_uses_gpt4o_model(
         self,
         autotrade_v3_module,
-        mock_openai,
+        mock_zhipuai,
         mock_pyupbit_orderbook,
     ):
         """
-        CHARACTERIZES: Uses gpt-4o model (not gpt-4-turbo-preview)
+        CHARACTERIZES: Uses get_default_model() for model selection
 
         Current behavior:
-        - Model name: "gpt-4o"
+        - Model name: determined by get_default_model() (gpt-4-turbo for OpenAI, glm-4.6v for GLM)
         - Includes image in message content
         - response_format: {"type": "json_object"}
         """
-        with patch.object(autotrade_v3_module, "client", mock_openai):
+        with patch.object(autotrade_v3_module, "client", mock_zhipuai):
             with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
                 with patch.object(
                     autotrade_v3_module,
                     "get_instructions",
                     return_value="Test",
                 ):
-                    autotrade_v3_module.analyze_data_with_gpt4(
+                    autotrade_v3_module.analyze_data_with_glm(
                         "news", "data", "decisions", "fear_greed", "status", "base64image"
                     )
 
-        call_kwargs = mock_openai.chat.completions.create.call_args[1]
+        call_kwargs = mock_zhipuai.chat.completions.create.call_args[1]
 
-        # Document current behavior: uses gpt-4o
-        assert call_kwargs["model"] == "gpt-4o", (
-            "Current behavior: uses gpt-4o model with vision"
+        # Document current behavior: uses get_default_model() which returns provider's default
+        # When GLM_API_KEY is not set (test env), falls back to OpenAI and uses gpt-4-turbo
+        assert call_kwargs["model"] == "gpt-4-turbo", (
+            "Current behavior: uses gpt-4-turbo when GLM_API_KEY not available"
         )
 
     @pytest.mark.characterization
     def test_characterize_analyze_includes_image(
         self,
         autotrade_v3_module,
-        mock_openai,
+        mock_zhipuai,
         mock_pyupbit_orderbook,
     ):
         """
         CHARACTERIZES: Image is included in message content
 
         Current behavior:
-        - Last message contains image_url content
+        - User message content list contains image_url item
         - Image URL format: data:image/jpeg;base64,{image_data}
         """
-        with patch.object(autotrade_v3_module, "client", mock_openai):
+        with patch.object(autotrade_v3_module, "client", mock_zhipuai):
             with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
                 with patch.object(
                     autotrade_v3_module,
                     "get_instructions",
                     return_value="Test",
                 ):
-                    autotrade_v3_module.analyze_data_with_gpt4(
+                    autotrade_v3_module.analyze_data_with_glm(
                         "news", "data", "decisions", "fear_greed", "status", "testimage123"
                     )
 
-        call_kwargs = mock_openai.chat.completions.create.call_args[1]
+        call_kwargs = mock_zhipuai.chat.completions.create.call_args[1]
         messages = call_kwargs["messages"]
 
-        # Document current behavior: 7 messages (1 system + 6 user including image)
-        assert len(messages) == 7, (
-            "Current behavior: 1 system + 6 user messages (including image)"
-        )
+        # Document current behavior: 2 messages (1 system + 1 user with content list)
+        assert len(messages) == 2, "Current behavior: 1 system + 1 user message with content list"
 
-        # Document current behavior: last message is image
+        # Document current behavior: user message has content list
         last_message = messages[-1]
         assert "content" in last_message, "Current behavior: has content"
         content = last_message["content"]
 
-        # Content should be a list with image_url
+        # Content should be a list with 5 text items + 1 image_url
         assert isinstance(content, list), "Current behavior: image content is list"
-        assert len(content) == 1, "Current behavior: single image item"
-        assert "image_url" in content[0], "Current behavior: has image_url key"
-        assert "data:image/jpeg;base64,testimage123" in content[0]["image_url"]["url"], (
+        assert len(content) == 6, "Current behavior: 5 text + 1 image item"
+        assert "image_url" in content[-1], "Current behavior: last item has image_url key"
+        assert "data:image/jpeg;base64,testimage123" in content[-1]["image_url"]["url"], (
             "Current behavior: image URL format is correct"
         )
 
@@ -292,7 +289,7 @@ class TestCharacterizeAnalyzeDataWithGpt4:
     def test_characterize_analyze_reads_instructions_v3(
         self,
         autotrade_v3_module,
-        mock_openai,
+        mock_zhipuai,
     ):
         """
         CHARACTERIZES: Reads from instructions_v3.md
@@ -300,15 +297,17 @@ class TestCharacterizeAnalyzeDataWithGpt4:
         Current behavior:
         - Instructions file path: "instructions_v3.md"
         """
-        with patch.object(autotrade_v3_module, "client", mock_openai):
-            with patch.object(
+        with (
+            patch.object(autotrade_v3_module, "client", mock_zhipuai),
+            patch.object(
                 autotrade_v3_module,
                 "get_instructions",
-            ) as mock_get_instructions:
-                mock_get_instructions.return_value = "Test instructions"
-                autotrade_v3_module.analyze_data_with_gpt4(
-                    "news", "data", "decisions", "fear_greed", "status", "image"
-                )
+            ) as mock_get_instructions,
+        ):
+            mock_get_instructions.return_value = "Test instructions"
+            autotrade_v3_module.analyze_data_with_glm(
+                "news", "data", "decisions", "fear_greed", "status", "image"
+            )
 
         # Document current behavior: reads instructions_v3.md
         mock_get_instructions.assert_called_once_with("instructions_v3.md")
@@ -329,22 +328,24 @@ class TestCharacterizeAnalyzeDataWithGpt4:
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("API Error")
 
-        with patch.object(autotrade_v3_module, "client", mock_client):
-            with patch.object(
+        with (
+            patch.object(autotrade_v3_module, "client", mock_client),
+            patch.object(
                 autotrade_v3_module,
                 "get_instructions",
                 return_value="Test",
-            ):
-                result = autotrade_v3_module.analyze_data_with_gpt4(
-                    "news", "data", "decisions", "fear_greed", "status", "image"
-                )
+            ),
+        ):
+            result = autotrade_v3_module.analyze_data_with_glm(
+                "news", "data", "decisions", "fear_greed", "status", "image"
+            )
 
         # Document current behavior: returns None
         assert result is None, "Current behavior: returns None on exception"
 
         # Document current behavior: prints error
         captured = capsys.readouterr()
-        assert "Error in analyzing data with GPT-4:" in captured.out, (
+        assert "Error in analyzing data with GLM-4.6v:" in captured.out, (
             "Current behavior: prints error message"
         )
 
@@ -360,7 +361,7 @@ class TestCharacterizeMakeDecisionAndExecute:
     def test_characterize_make_decision_calls_get_image(
         self,
         autotrade_v3_module,
-        mock_openai,
+        mock_zhipuai,
         mock_upbit,
         mock_pyupbit_ohlcv,
         mock_pyupbit_orderbook,
@@ -375,7 +376,7 @@ class TestCharacterizeMakeDecisionAndExecute:
         - Calls get_current_base64_image()
         - Passes image to analyze_data_with_gpt4()
         """
-        with patch.object(autotrade_v3_module, "client", mock_openai):
+        with patch.object(autotrade_v3_module, "client", mock_zhipuai):
             with patch.object(autotrade_v3_module, "upbit", mock_upbit):
                 with patch("pyupbit.get_ohlcv", mock_pyupbit_ohlcv):
                     with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
@@ -446,12 +447,8 @@ class TestCharacterizeModuleSetup:
         - Imports base64 for image encoding
         """
         # Document current behavior: selenium components available
-        assert hasattr(autotrade_v3_module, "webdriver"), (
-            "Current behavior: imports webdriver"
-        )
-        assert hasattr(autotrade_v3_module, "Service"), (
-            "Current behavior: imports Service"
-        )
+        assert hasattr(autotrade_v3_module, "webdriver"), "Current behavior: imports webdriver"
+        assert hasattr(autotrade_v3_module, "Service"), "Current behavior: imports Service"
         assert hasattr(autotrade_v3_module, "By"), "Current behavior: imports By"
         assert hasattr(autotrade_v3_module, "WebDriverWait"), (
             "Current behavior: imports WebDriverWait"
@@ -471,9 +468,9 @@ class TestCharacterizeModuleSetup:
         import base64
 
         # Document current behavior: base64 available
-        assert "base64" in dir(autotrade_v3_module) or base64 in vars(
-            autotrade_v3_module
-        ).values(), "Current behavior: imports base64"
+        assert (
+            "base64" in dir(autotrade_v3_module) or base64 in vars(autotrade_v3_module).values()
+        ), "Current behavior: imports base64"
 
 
 class TestCharacterizeSharedFunctions:
@@ -511,9 +508,7 @@ class TestCharacterizeSharedFunctions:
             "krw_balance",
             "btc_avg_buy_price",
         }
-        assert set(parsed.keys()) == expected_keys, (
-            "Current behavior: same keys as v2"
-        )
+        assert set(parsed.keys()) == expected_keys, "Current behavior: same keys as v2"
 
     @pytest.mark.characterization
     def test_characterize_fetch_and_prepare_data_shared_behavior(
@@ -559,9 +554,7 @@ class TestCharacterizeSharedFunctions:
             autotrade_v3_module.execute_buy(50)
 
         call_args = mock_upbit.buy_market_order.call_args
-        assert call_args[0][1] == 499750.0, (
-            "Current behavior: same fee calculation as v2"
-        )
+        assert call_args[0][1] == 499750.0, "Current behavior: same fee calculation as v2"
 
     @pytest.mark.characterization
     def test_characterize_execute_sell_shared_behavior(

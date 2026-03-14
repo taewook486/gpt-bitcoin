@@ -10,16 +10,14 @@ Tests cover:
 
 import logging
 
-import pytest
-
 from gpt_bitcoin.infrastructure.logging import (
+    bind_correlation_context,
+    clear_correlation_id,
+    get_correlation_id,
     get_logger,
     mask_sensitive_data_processor,
-    setup_logging,
-    get_correlation_id,
     set_correlation_id,
-    clear_correlation_id,
-    bind_correlation_context,
+    setup_logging,
 )
 
 
@@ -212,6 +210,8 @@ class TestCorrelationId:
             logger.info("test_message", extra_data="value")
 
         # Check that correlation_id is in the log record
-        assert any("log-test-id" in str(record) for record in caplog.records) or True  # May be in structured format
+        assert (
+            any("log-test-id" in str(record) for record in caplog.records) or True
+        )  # May be in structured format
 
         clear_correlation_id()

@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-session-start.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-session-start.sh\"",
             "timeout": 30,
             "type": "command"
           }
@@ -15,7 +15,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-compact.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-compact.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -26,7 +26,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-session-end.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-session-end.sh\"",
             "timeout": 10,
             "type": "command"
           }
@@ -37,7 +37,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-pre-tool.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-pre-tool.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -49,7 +49,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-post-tool.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-post-tool.sh\"",
             "timeout": 60,
             "type": "command"
           }
@@ -61,7 +61,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-stop.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-stop.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -72,7 +72,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-subagent-stop.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-subagent-stop.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -83,7 +83,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-post-tool-failure.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-post-tool-failure.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -94,7 +94,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-notification.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-notification.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -105,7 +105,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-subagent-start.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-subagent-start.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -116,7 +116,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-user-prompt-submit.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-user-prompt-submit.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -127,7 +127,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-permission-request.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-permission-request.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -138,7 +138,7 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-teammate-idle.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-teammate-idle.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -149,7 +149,29 @@
       {
         "hooks": [
           {
-            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-task-completed.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-task-completed.sh\"",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-worktree-create.sh\"",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/moai/handle-worktree-remove.sh\"",
             "timeout": 5,
             "type": "command"
           }
@@ -168,7 +190,7 @@
     "CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS": "64000",
     "ENABLE_TOOL_SEARCH": "1",
     "MOAI_CONFIG_SOURCE": "sections",
-    "PATH": "C:\\Users\\taewo\\go\\bin;c:\\Users\\taewo\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand;c:\\Users\\taewo\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\copilotCli;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\bin\\x64;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;C:\\Users\\taewo\\AppData\\Local\\Programs\\Python\\Python311;C:\\Users\\taewo\\AppData\\Local\\Programs\\Python\\Python311\\Scripts;C:\\Program Files\\gs\\gs10.06.0\\bin;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2025.4.0\\;C:\\Program Files\\OpenSSL-Win64\\bin;C:\\Program Files\\nodejs\\;C:\\Program Files\\GitHub CLI\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Warp\\bin;;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Users\\taewo\\AppData\\Local\\Programs\\moai;c:\\Users\\taewo\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\debugCommand;c:\\Users\\taewo\\AppData\\Roaming\\Code\\User\\globalStorage\\github.copilot-chat\\copilotCli;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\bin\\x64;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.1\\bin;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\;C:\\Users\\taewo\\AppData\\Local\\Programs\\Python\\Python311;C:\\Users\\taewo\\AppData\\Local\\Programs\\Python\\Python311\\Scripts;C:\\Program Files\\gs\\gs10.06.0\\bin;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2025.4.0\\;C:\\Program Files\\OpenSSL-Win64\\bin;C:\\Program Files\\nodejs\\;C:\\Program Files\\GitHub CLI\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Warp\\bin;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Users\\taewo\\scoop\\shims;C:\\Users\\taewo\\.local\\bin;C:\\Users\\taewo\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\taewo\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin;C:\\Users\\taewo\\AppData\\Local\\Programs\\Python\\Python311;C:\\Users\\taewo\\.dotnet\\tools;C:\\Users\\taewo\\.lmstudio\\bin;C:\\Users\\taewo\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\taewo\\AppData\\Local\\Programs\\Ollama;C:\\Users\\taewo\\AppData\\Roaming\\npm;C:\\Users\\taewo\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Oven-sh.Bun_Microsoft.Winget.Source_8wekyb3d8bbwe\\./bun-windows-x64;C:\\Users\\taewo\\.dotnet\\tools;C:\\Users\\taewo\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\\Users\\taewo\\.bun\\bin;C:\\Users\\taewo\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\taewo\\.moai\\binc:\\Users\\taewo\\.vscode\\extensions\\ms-python.debugpy-2025.18.0-win32-x64\\bundled\\scripts\\noConfigScripts"
+    "PATH": "C:\\Users\\taewo\\go\\bin;C:\\Program Files\\PowerShell\\7;C:\\Python314\\Scripts\\;C:\\Python314\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\nodejs\\;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\PowerShell\\7\\;C:\\hanway\\tools\\openjdk-17.0.2\\bin\\;C:\\hanway\\tools\\gradle-8.4\\bin\\;C:\\Program Files\\PuTTY\\;C:\\Users\\taewo\\.cargo\\bin;C:\\Users\\taewo\\.local\\bin;C:\\Users\\taewo\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\taewo\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\taewo\\AppData\\Roaming\\npm;C:\\Users\\taewo\\AppData\\Local\\Programs\\moai;c:\\Users\\taewo\\.vscode\\extensions\\ms-python.debugpy-2025.18.0-win32-x64\\bundled\\scripts\\noConfigScripts"
   },
   "permissions": {
     "defaultMode": "acceptEdits",

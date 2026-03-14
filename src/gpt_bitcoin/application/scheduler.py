@@ -18,10 +18,10 @@ with native async/await support for better resource utilization.
 from __future__ import annotations
 
 import asyncio
-import logging
-from dataclasses import dataclass, field
+from collections.abc import Callable, Coroutine
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 from gpt_bitcoin.config.settings import Settings, get_settings
 from gpt_bitcoin.infrastructure.logging import get_logger

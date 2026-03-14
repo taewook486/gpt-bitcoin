@@ -15,22 +15,22 @@ Example:
 
 from __future__ import annotations
 
-import asyncio
 import functools
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from typing import TypeVar
 
 from tenacity import (
     AsyncRetrying,
-    Retrying,
     RetryError,
+    Retrying,
     before_sleep_log,
+    retry_if_exception_type,
     stop_after_attempt,
     stop_after_delay,
     wait_exponential,
     wait_random,
-    retry_if_exception_type,
-    after_log,
 )
 from typing_extensions import ParamSpec
 
@@ -131,7 +131,8 @@ def sync_retry(
             exponential_multiplier=exponential_multiplier,
             jitter=jitter,
             timeout=timeout,
-            retryable_exceptions=retryable_exceptions or (
+            retryable_exceptions=retryable_exceptions
+            or (
                 ConnectionError,
                 TimeoutError,
                 OSError,
@@ -145,7 +146,7 @@ def sync_retry(
                 stop=_create_stop_strategy(config),
                 wait=_create_wait_strategy(config),
                 retry=retry_if_exception_type(config.retryable_exceptions),
-                before_sleep=before_sleep_log(logger, logger.level),
+                before_sleep=before_sleep_log(logger, logging.INFO),
                 reraise=True,
             )
 
@@ -215,7 +216,8 @@ def async_retry(
             exponential_multiplier=exponential_multiplier,
             jitter=jitter,
             timeout=timeout,
-            retryable_exceptions=retryable_exceptions or (
+            retryable_exceptions=retryable_exceptions
+            or (
                 ConnectionError,
                 TimeoutError,
                 OSError,
@@ -229,7 +231,7 @@ def async_retry(
                 stop=_create_stop_strategy(config),
                 wait=_create_wait_strategy(config),
                 retry=retry_if_exception_type(config.retryable_exceptions),
-                before_sleep=before_sleep_log(logger, logger.level),
+                before_sleep=before_sleep_log(logger, logging.INFO),
                 reraise=True,
             )
 
