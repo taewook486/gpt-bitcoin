@@ -15,9 +15,9 @@ from pydantic import ValidationError
 
 from gpt_bitcoin.domain import (
     Cryptocurrency,
-    TradingStrategy,
     RiskTolerance,
     TradingDecision,
+    TradingStrategy,
 )
 
 

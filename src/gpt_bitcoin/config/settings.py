@@ -5,10 +5,10 @@ This module provides centralized configuration with environment variable support
 and validation.
 """
 
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from gpt_bitcoin.domain.backup import BackupConfig
 from gpt_bitcoin.domain.security import SecuritySettingsModel
 
 
@@ -37,6 +37,46 @@ class Settings(BaseSettings):
     upbit_secret_key: str = Field(..., description="Upbit secret key")
     zhipuai_api_key: str = Field(..., description="ZhipuAI API key")
     serpapi_api_key: str = Field(default="", description="SerpApi API key (optional)")
+
+    # AI Provider Configuration (Dual Provider Mode)
+    glm_api_key: str = Field(default="", description="GLM API key (primary provider)")
+    glm_api_base: str = Field(
+        default="https://api.z.ai/api/coding/paas/v4/",
+        description="GLM API base URL",
+    )
+    glm_model: str = Field(default="glm-5", description="GLM model name")
+    openai_api_key: str = Field(default="", description="OpenAI API key (fallback provider)")
+    openai_model: str = Field(default="gpt-4-turbo", description="OpenAI model name")
+    ai_provider: str = Field(
+        default="auto",
+        description="AI provider selection (glm, openai, auto)",
+    )
+    ai_max_retries: int = Field(
+        default=5,
+        ge=1,
+        description="Maximum retry attempts for AI API calls",
+    )
+    ai_initial_delay: float = Field(
+        default=1.0,
+        ge=0.1,
+        description="Initial delay for exponential backoff (seconds)",
+    )
+    ai_timeout: int = Field(
+        default=30,
+        ge=5,
+        le=120,
+        description="AI API call timeout (seconds)",
+    )
+    ai_health_check_interval: int = Field(
+        default=300,
+        ge=60,
+        description="Provider health check interval (seconds)",
+    )
+    ai_failure_threshold: int = Field(
+        default=3,
+        ge=1,
+        description="Consecutive failures before provider switch",
+    )
 
     # Trading settings
     testnet_mode: bool = Field(
@@ -91,6 +131,14 @@ class Settings(BaseSettings):
         default="trading_decisions.sqlite",
         description="Path to SQLite database",
     )
+    profile_db_path: str = Field(
+        default="data/profiles.db",
+        description="Path to user profiles SQLite database",
+    )
+    notification_db_path: str = Field(
+        default="data/notifications.db",
+        description="Path to notifications SQLite database",
+    )
 
     # Scheduling
     schedule_times: list[str] = Field(
@@ -114,6 +162,67 @@ class Settings(BaseSettings):
     security: SecuritySettingsModel = Field(
         default_factory=SecuritySettingsModel,
         description="Security settings for 2FA and trading limits",
+    )
+
+    # Backup settings
+    backup: BackupConfig = Field(
+        default_factory=BackupConfig,
+        description="Backup configuration",
+    )
+
+    # Rate Limiting settings (REQ-RATE-001)
+    # OpenAI API rate limits
+    openai_requests_per_hour: int = Field(
+        default=60,
+        ge=1,
+        description="OpenAI API requests per hour limit",
+    )
+    openai_tokens_per_minute: int = Field(
+        default=100000,
+        ge=1,
+        description="OpenAI API tokens per minute limit",
+    )
+
+    # Upbit API rate limits
+    upbit_requests_per_second: int = Field(
+        default=10,
+        ge=1,
+        description="Upbit API requests per second limit",
+    )
+    upbit_requests_per_minute: int = Field(
+        default=600,
+        ge=1,
+        description="Upbit API requests per minute limit",
+    )
+
+    # Circuit breaker settings (REQ-RATE-005, REQ-RATE-006)
+    circuit_failure_threshold: int = Field(
+        default=5,
+        ge=1,
+        description="Consecutive failures before circuit breaker opens",
+    )
+    circuit_recovery_timeout: int = Field(
+        default=60,
+        ge=1,
+        description="Seconds before circuit breaker tries recovery",
+    )
+
+    # Retry settings (REQ-RATE-004, REQ-RATE-010)
+    api_max_retries: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Maximum retry attempts for API calls",
+    )
+    api_base_delay: float = Field(
+        default=1.0,
+        ge=0.1,
+        description="Base delay for exponential backoff (seconds)",
+    )
+    api_max_delay: float = Field(
+        default=60.0,
+        ge=1.0,
+        description="Maximum delay between retries (seconds)",
     )
 
     @field_validator("log_level")

@@ -10,15 +10,16 @@ Tests cover:
 - JWT generation
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from gpt_bitcoin.infrastructure.external.upbit_client import (
+    OHLCV,
     Balance,
+    Order,
     Orderbook,
     OrderbookUnit,
-    OHLCV,
-    Order,
     UpbitClient,
 )
 
@@ -269,14 +270,16 @@ class TestUpbitClientErrorHandling:
         """UpbitClient should handle API errors."""
         from gpt_bitcoin.infrastructure.exceptions import UpbitAPIError
 
-        with patch.object(
-            upbit_client,
-            "_request",
-            new_callable=AsyncMock,
-            side_effect=UpbitAPIError("API Error", status_code=500),
+        with (
+            patch.object(
+                upbit_client,
+                "_request",
+                new_callable=AsyncMock,
+                side_effect=UpbitAPIError("API Error", status_code=500),
+            ),
+            pytest.raises(UpbitAPIError),
         ):
-            with pytest.raises(UpbitAPIError):
-                await upbit_client.get_balances()
+            await upbit_client.get_balances()
 
 
 class TestBalanceModel:
@@ -489,7 +492,6 @@ class TestUpbitClientRateLimitExtended:
     @pytest.mark.asyncio
     async def test_rate_limit_adds_request_time(self, upbit_client):
         """_check_rate_limit should add request time to list."""
-        import time
 
         initial_count = len(upbit_client._request_times)
 

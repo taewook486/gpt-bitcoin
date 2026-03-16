@@ -7,8 +7,6 @@ Tests cover:
 - Specific exception types
 """
 
-import pytest
-
 from gpt_bitcoin.infrastructure.exceptions import (
     AnalysisError,
     CircuitBreakerOpenError,

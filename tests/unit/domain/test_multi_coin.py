@@ -9,13 +9,12 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
 from enum import Enum
 
 from gpt_bitcoin.domain import (
+    CoinManager,
     Cryptocurrency,
     UserPreferences,
-    CoinManager,
 )
 
 

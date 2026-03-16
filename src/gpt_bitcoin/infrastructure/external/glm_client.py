@@ -22,9 +22,9 @@ from pydantic import BaseModel, Field
 from tenacity import (
     AsyncRetrying,
     RetryError,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 from zhipuai import ZhipuAI
 
@@ -335,10 +335,12 @@ class GLMClient:
         content: list[dict[str, Any]] = []
         for text in text_messages:
             content.append({"type": "text", "text": text})
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
-        })
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+            }
+        )
 
         return await self._call_api(
             model=self._settings.glm_vision_model,
@@ -370,9 +372,9 @@ class GLMClient:
             GLMAPIError: If all retries fail
         """
         # Estimate tokens (rough: 4 chars per token)
-        estimated_tokens = len(system_prompt) // 4 + sum(
-            len(str(m)) // 4 for m in messages
-        ) + 500  # Buffer for response
+        estimated_tokens = (
+            len(system_prompt) // 4 + sum(len(str(m)) // 4 for m in messages) + 500
+        )  # Buffer for response
 
         try:
             await self._rate_limiter.acquire(estimated_tokens)
@@ -425,6 +427,7 @@ class GLMClient:
             parsed = None
             try:
                 import json
+
                 data = json.loads(content)
                 parsed = TradingDecision(**data)
             except (json.JSONDecodeError, ValueError) as e:

@@ -12,16 +12,15 @@ This test module covers:
 
 from __future__ import annotations
 
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
-import tempfile
-import os
 
 import pytest
 
-from gpt_bitcoin.infrastructure.persistence.trade_repository import TradeRepository
 from gpt_bitcoin.domain.trade_history import TradeRecord, TradeType
-
+from gpt_bitcoin.infrastructure.persistence.trade_repository import TradeRepository
 
 # =============================================================================
 # Test Fixtures

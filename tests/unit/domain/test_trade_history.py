@@ -11,20 +11,17 @@ This test module covers:
 
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
-from io import StringIO
 import csv
+from datetime import datetime
+from io import StringIO
 
 import pytest
 
 from gpt_bitcoin.domain.trade_history import (
+    TradeHistoryService,
     TradeRecord,
     TradeType,
-    TradeHistoryService,
-    TradeHistoryError,
 )
-
 
 # =============================================================================
 # TradeRecord Model Tests

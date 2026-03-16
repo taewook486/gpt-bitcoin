@@ -11,10 +11,11 @@ This module provides:
 
 from __future__ import annotations
 
-import aiosqlite
 import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import aiosqlite
 
 from gpt_bitcoin.domain.audit import AuditRecord, AuditRepository
 

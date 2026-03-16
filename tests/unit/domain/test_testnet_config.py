@@ -11,9 +11,7 @@ This test module covers:
 
 from __future__ import annotations
 
-import pytest
-
-from gpt_bitcoin.domain.testnet_config import TestnetConfig, MockBalance
+from gpt_bitcoin.domain.testnet_config import MockBalance, TestnetConfig
 from gpt_bitcoin.domain.trading_mode import TradingMode
 
 

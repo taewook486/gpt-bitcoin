@@ -9,8 +9,9 @@ Tests cover:
 - Client initialization
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from gpt_bitcoin.infrastructure.external.glm_client import (
     GLMClient,
@@ -415,7 +416,9 @@ class TestGLMClientCallApi:
         # Mock the actual API call
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = '{"decision": "hold", "percentage": 0, "reason": "test"}'
+        mock_response.choices[
+            0
+        ].message.content = '{"decision": "hold", "percentage": 0, "reason": "test"}'
         mock_response.usage = MagicMock()
         mock_response.usage.prompt_tokens = 10
         mock_response.usage.completion_tokens = 5
@@ -437,11 +440,12 @@ class TestGLMClientCallApi:
     @pytest.mark.asyncio
     async def test_call_api_connection_error_retry(self, glm_client):
         """_call_api should retry on connection errors."""
-        from gpt_bitcoin.infrastructure.external.glm_client import GLMAPIError
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = '{"decision": "hold", "percentage": 0, "reason": "test"}'
+        mock_response.choices[
+            0
+        ].message.content = '{"decision": "hold", "percentage": 0, "reason": "test"}'
         mock_response.usage = MagicMock()
         mock_response.usage.prompt_tokens = 10
         mock_response.usage.completion_tokens = 5
@@ -468,8 +472,9 @@ class TestGLMClientCallApi:
     @pytest.mark.asyncio
     async def test_call_api_max_retries_exceeded(self, glm_client):
         """_call_api should raise after max retries."""
-        from gpt_bitcoin.infrastructure.external.glm_client import GLMAPIError
         from tenacity import RetryError
+
+        from gpt_bitcoin.infrastructure.external.glm_client import GLMAPIError
 
         with patch.object(glm_client._client.chat.completions, "create") as mock_create:
             mock_create.side_effect = ConnectionError("Network error")

@@ -74,73 +74,77 @@ class ChartGenerator:
 
         try:
             import matplotlib
-            matplotlib.use('Agg')  # Non-interactive backend
-            import matplotlib.pyplot as plt
-            import matplotlib.dates as mdates
+
+            matplotlib.use("Agg")  # Non-interactive backend
             from datetime import datetime
+
+            import matplotlib.dates as mdates
+            import matplotlib.pyplot as plt
 
             # Create figure with subplots
             fig, (ax1, ax2) = plt.subplots(
-                2, 1, figsize=(12, 8),
-                gridspec_kw={'height_ratios': [3, 1]},
+                2,
+                1,
+                figsize=(12, 8),
+                gridspec_kw={"height_ratios": [3, 1]},
             )
 
             # Set style
             if self._style == "dark":
-                fig.patch.set_facecolor('#1a1a2e')
-                ax1.set_facecolor('#1a1a2e')
-                ax2.set_facecolor('#1a1a2e')
-                text_color = 'white'
+                fig.patch.set_facecolor("#1a1a2e")
+                ax1.set_facecolor("#1a1a2e")
+                ax2.set_facecolor("#1a1a2e")
+                text_color = "white"
             else:
-                text_color = 'black'
+                text_color = "black"
 
             # Extract data
-            opens = [d.get('open', 0) for d in ohlcv_data]
-            highs = [d.get('high', 0) for d in ohlcv_data]
-            lows = [d.get('low', 0) for d in ohlcv_data]
-            closes = [d.get('close', 0) for d in ohlcv_data]
-            volumes = [d.get('volume', 0) for d in ohlcv_data]
+            opens = [d.get("open", 0) for d in ohlcv_data]
+            highs = [d.get("high", 0) for d in ohlcv_data]
+            lows = [d.get("low", 0) for d in ohlcv_data]
+            closes = [d.get("close", 0) for d in ohlcv_data]
+            volumes = [d.get("volume", 0) for d in ohlcv_data]
 
             # Plot candlesticks
             x = range(len(ohlcv_data))
             for i, (o, h, l, c) in enumerate(zip(opens, highs, lows, closes)):
-                color = 'green' if c >= o else 'red'
+                color = "green" if c >= o else "red"
                 # Candle body
                 ax1.bar(i, abs(c - o), bottom=min(o, c), color=color, width=0.6)
                 # Wicks
                 ax1.vlines(i, l, h, color=color, linewidth=1)
 
             # Plot volume
-            colors = ['green' if c >= o else 'red' for o, c in zip(opens, closes)]
+            colors = ["green" if c >= o else "red" for o, c in zip(opens, closes)]
             ax2.bar(x, volumes, color=colors, width=0.6)
 
             # Add indicators if specified
             if indicators:
-                if 'ma20' in indicators and len(closes) >= 20:
+                if "ma20" in indicators and len(closes) >= 20:
                     ma20 = self._calculate_ma(closes, 20)
-                    ax1.plot(x[19:], ma20, color='yellow', linewidth=1, label='MA20')
+                    ax1.plot(x[19:], ma20, color="yellow", linewidth=1, label="MA20")
 
-                if 'rsi' in indicators and len(closes) >= 14:
+                if "rsi" in indicators and len(closes) >= 14:
                     rsi = self._calculate_rsi(closes)
                     ax_rsi = ax1.twinx()
-                    ax_rsi.plot(x, rsi, color='purple', linewidth=1, label='RSI')
-                    ax_rsi.set_ylabel('RSI', color=text_color)
-                    ax_rsi.tick_params(axis='y', labelcolor=text_color)
+                    ax_rsi.plot(x, rsi, color="purple", linewidth=1, label="RSI")
+                    ax_rsi.set_ylabel("RSI", color=text_color)
+                    ax_rsi.tick_params(axis="y", labelcolor=text_color)
 
             # Styling
-            ax1.set_ylabel('Price', color=text_color)
-            ax1.set_title('Price Chart', color=text_color)
-            ax1.tick_params(axis='both', colors=text_color)
+            ax1.set_ylabel("Price", color=text_color)
+            ax1.set_title("Price Chart", color=text_color)
+            ax1.tick_params(axis="both", colors=text_color)
 
-            ax2.set_ylabel('Volume', color=text_color)
-            ax2.set_xlabel('Time', color=text_color)
-            ax2.tick_params(axis='both', colors=text_color)
+            ax2.set_ylabel("Volume", color=text_color)
+            ax2.set_xlabel("Time", color=text_color)
+            ax2.tick_params(axis="both", colors=text_color)
 
             plt.tight_layout()
 
             # Save to bytes
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=100)
+            plt.savefig(buf, format="png", dpi=100)
             buf.seek(0)
             plt.close(fig)
 
@@ -157,7 +161,7 @@ class ChartGenerator:
         """Calculate Moving Average."""
         result = []
         for i in range(period - 1, len(data)):
-            avg = sum(data[i - period + 1:i + 1]) / period
+            avg = sum(data[i - period + 1 : i + 1]) / period
             result.append(avg)
         return result
 
@@ -177,8 +181,8 @@ class ChartGenerator:
             losses.append(max(0, -change))
 
         for i in range(period, len(gains)):
-            avg_gain = sum(gains[i - period:i]) / period
-            avg_loss = sum(losses[i - period:i]) / period
+            avg_gain = sum(gains[i - period : i]) / period
+            avg_loss = sum(losses[i - period : i]) / period
 
             if avg_loss == 0:
                 rsi = 100.0
@@ -268,7 +272,7 @@ class VisionAnalyzer:
             return False
 
         # Check if client has vision method
-        return hasattr(self._client, 'chat_async') or hasattr(self._client, 'chat')
+        return hasattr(self._client, "chat_async") or hasattr(self._client, "chat")
 
     def is_vision_available(self) -> bool:
         """
@@ -310,16 +314,14 @@ class VisionAnalyzer:
                         {"type": "text", "text": prompt},
                         {
                             "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{image_base64}"
-                            }
-                        }
-                    ]
+                            "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                        },
+                    ],
                 }
             ]
 
             # Call vision API
-            if hasattr(self._client, 'chat_async'):
+            if hasattr(self._client, "chat_async"):
                 response = await self._client.chat_async(messages=messages)
             else:
                 response = self._client.chat(messages=messages)
@@ -362,15 +364,13 @@ class VisionAnalyzer:
                         {"type": "text", "text": prompt},
                         {
                             "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{image_base64}"
-                            }
-                        }
-                    ]
+                            "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                        },
+                    ],
                 }
             ]
 
-            if hasattr(self._client, 'chat'):
+            if hasattr(self._client, "chat"):
                 response = self._client.chat(messages=messages)
 
                 if response and "choices" in response:
@@ -428,8 +428,8 @@ def get_chart_image_for_analysis(
 
 __all__ = [
     "ChartGenerator",
-    "encode_to_base64",
-    "decode_base64",
     "VisionAnalyzer",
+    "decode_base64",
+    "encode_to_base64",
     "get_chart_image_for_analysis",
 ]

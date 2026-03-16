@@ -9,17 +9,18 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock
+
+import pytest
 
 from gpt_bitcoin.infrastructure.error_handling import (
-    DeadLetterQueue,
-    FailedOperation,
-    AlertSystem,
     AlertLevel,
+    AlertSystem,
+    DeadLetterQueue,
     ErrorContext,
     ErrorHandler,
+    FailedOperation,
 )
 
 

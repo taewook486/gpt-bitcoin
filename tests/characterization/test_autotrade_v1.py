@@ -19,9 +19,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
-
 
 # Load the legacy module dynamically
 # Note: autotrade.py is the actual v1 code (no percentage parameter)
@@ -120,7 +118,9 @@ class TestCharacterizeGetCurrentStatus:
 
         # Document current behavior: defaults to 0
         assert parsed["btc_balance"] == 0, "Current behavior: missing BTC defaults to 0"
-        assert parsed["btc_avg_buy_price"] == 0, "Current behavior: missing avg_buy_price defaults to 0"
+        assert parsed["btc_avg_buy_price"] == 0, (
+            "Current behavior: missing avg_buy_price defaults to 0"
+        )
 
 
 class TestCharacterizeFetchAndPrepareData:
@@ -272,33 +272,35 @@ class TestCharacterizeAnalyzeDataWithGpt4:
     def test_characterize_analyze_data_with_gpt4_returns_json_string(
         self,
         autotrade_v1_module,
-        mock_openai,
+        mock_zhipuai,
+        mock_upbit,
         mock_pyupbit_orderbook,
         tmp_path,
     ):
         """
-        CHARACTERIZES: analyze_data_with_gpt4 returns JSON string
+        CHARACTERIZES: analyze_data_with_glm returns JSON string
 
         Current behavior:
-        - Uses gpt-4-turbo-preview model
+        - Uses glm-5 model
         - Reads instructions from instructions.md
         - Calls get_current_status internally
-        - Returns raw content string from GPT-4
+        - Returns raw content string from GLM
         - response_format is set to json_object
         """
         # Create temp instructions file
         instructions_file = tmp_path / "instructions.md"
         instructions_file.write_text("Test instructions", encoding="utf-8")
 
-        with patch.object(autotrade_v1_module, "client", mock_openai):
-            with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
-                # Mock the get_instructions to return content
-                with patch.object(
-                    autotrade_v1_module,
-                    "get_instructions",
-                    return_value="Test instructions",
-                ):
-                    result = autotrade_v1_module.analyze_data_with_gpt4("test data")
+        with patch.object(autotrade_v1_module, "client", mock_zhipuai):
+            with patch.object(autotrade_v1_module, "upbit", mock_upbit):
+                with patch("pyupbit.get_orderbook", mock_pyupbit_orderbook):
+                    # Mock the get_instructions to return content
+                    with patch.object(
+                        autotrade_v1_module,
+                        "get_instructions",
+                        return_value="Test instructions",
+                    ):
+                        result = autotrade_v1_module.analyze_data_with_glm("test data")
 
         # Document current behavior: returns string (JSON from mock)
         assert isinstance(result, str), "Current behavior: returns string"
@@ -311,7 +313,7 @@ class TestCharacterizeAnalyzeDataWithGpt4:
     def test_characterize_analyze_data_with_gpt4_no_instructions(
         self,
         autotrade_v1_module,
-        mock_openai,
+        mock_zhipuai,
         capsys,
     ):
         """
@@ -326,15 +328,13 @@ class TestCharacterizeAnalyzeDataWithGpt4:
             "get_instructions",
             return_value=None,
         ):
-            result = autotrade_v1_module.analyze_data_with_gpt4("test data")
+            result = autotrade_v1_module.analyze_data_with_glm("test data")
 
         # Document current behavior: returns None
         assert result is None, "Current behavior: returns None when no instructions"
 
         captured = capsys.readouterr()
-        assert "No instructions found." in captured.out, (
-            "Current behavior: prints error message"
-        )
+        assert "No instructions found." in captured.out, "Current behavior: prints error message"
 
 
 class TestCharacterizeExecuteBuy:
@@ -373,9 +373,7 @@ class TestCharacterizeExecuteBuy:
 
         # Document current behavior: prints success message
         captured = capsys.readouterr()
-        assert "Buy order successful:" in captured.out, (
-            "Current behavior: prints success message"
-        )
+        assert "Buy order successful:" in captured.out, "Current behavior: prints success message"
 
     @pytest.mark.characterization
     def test_characterize_execute_buy_below_minimum_threshold(
@@ -463,9 +461,7 @@ class TestCharacterizeExecuteSell:
 
         # Document current behavior: prints success message
         captured = capsys.readouterr()
-        assert "Sell order successful:" in captured.out, (
-            "Current behavior: prints success message"
-        )
+        assert "Sell order successful:" in captured.out, "Current behavior: prints success message"
 
     @pytest.mark.characterization
     def test_characterize_execute_sell_below_minimum_threshold(
@@ -552,9 +548,7 @@ class TestCharacterizeMakeDecisionAndExecute:
         # Create a mock that returns invalid JSON
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="Not valid JSON"))
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content="Not valid JSON"))]
         mock_client.chat.completions.create.return_value = mock_response
 
         with patch.object(autotrade_v1_module, "client", mock_client):

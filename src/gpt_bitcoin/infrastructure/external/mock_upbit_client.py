@@ -46,6 +46,7 @@ class _Order:
     order_type: str
     price: float
     volume: float
+    executed_volume: float  # 실제 체결된 수량 (시장가는 volume과 동일)
     fee: float
     created_at: datetime
 
@@ -228,18 +229,15 @@ class MockUpbitClient:
 
         # Update coin balance
         coin = ticker.split("-")[1] if "-" in ticker else ticker
-        self._balance.coin_balances[coin] = (
-            self._balance.coin_balances.get(coin, 0.0) + quantity
-        )
+        self._balance.coin_balances[coin] = self._balance.coin_balances.get(coin, 0.0) + quantity
 
         # Update avg buy price
         old_quantity = self._balance.coin_balances.get(coin, 0.0) - quantity
         old_avg_price = self._balance.avg_buy_prices.get(coin, price)
 
         if old_quantity > 0:
-            new_avg_price = (
-                (old_avg_price * old_quantity + price * quantity)
-                / (old_quantity + quantity)
+            new_avg_price = (old_avg_price * old_quantity + price * quantity) / (
+                old_quantity + quantity
             )
             self._balance.avg_buy_prices[coin] = new_avg_price
         else:
@@ -252,6 +250,7 @@ class MockUpbitClient:
             order_type="market",
             price=price,
             volume=quantity,
+            executed_volume=quantity,  # 시장가 주문은 전량 체결
             fee=fee,
             created_at=datetime.now(),
         )
@@ -287,8 +286,7 @@ class MockUpbitClient:
 
         if current_balance < volume:
             raise ValueError(
-                f"잔액 부족: 필요 {volume:.8f} {coin}, "
-                f"보유 {current_balance:.8f} {coin}"
+                f"잔액 부족: 필요 {volume:.8f} {coin}, 보유 {current_balance:.8f} {coin}"
             )
 
         # Update coin balance
@@ -304,6 +302,7 @@ class MockUpbitClient:
             order_type="market",
             price=price,
             volume=volume,
+            executed_volume=volume,  # 시장가 주문은 전량 체결
             fee=fee,
             created_at=datetime.now(),
         )

@@ -9,23 +9,18 @@ using OpenTelemetry standards.
 
 from __future__ import annotations
 
-import os
+import contextvars
 from typing import Any
 
-from opentelemetry import trace, metrics
+from opentelemetry import metrics, trace
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
     ConsoleSpanExporter,
     SimpleSpanProcessor,
 )
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import (
-    ConsoleMetricExporter,
-    InMemoryMetricReader,
-)
-from opentelemetry.sdk.resources import Resource
-import contextvars
 
 # Global tracer provider
 _tracer_provider: TracerProvider | None = None
@@ -88,15 +83,11 @@ def setup_tracing(
     trace.set_tracer_provider(_tracer_provider)
 
     # Add console exporter for development
-    _tracer_provider.add_span_processor(
-        SimpleSpanProcessor(ConsoleSpanExporter())
-    )
+    _tracer_provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 
     # Configure OTLP exporter if endpoint provided
     if otlp_endpoint:
-        _tracer_provider.add_span_processor(
-            BatchSpanProcessor(ConsoleSpanExporter())
-        )
+        _tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 
     return _tracer_provider
 

@@ -48,14 +48,13 @@ from gpt_bitcoin.domain import (
     StrategyManager,
     TradingStrategy,
 )
-from gpt_bitcoin.infrastructure.external.upbit_client import UpbitClient
 from gpt_bitcoin.infrastructure.instructions import InstructionManager
 from gpt_bitcoin.infrastructure.logging import get_logger
 from gpt_bitcoin.infrastructure.observability.tracing import set_correlation_id
 
 if TYPE_CHECKING:
-    from gpt_bitcoin.domain.trading import TradeApproval, TradeResult, TradingService
     from gpt_bitcoin.domain.security import SecurityService
+    from gpt_bitcoin.domain.trading import TradeApproval, TradeResult, TradingService
     from gpt_bitcoin.infrastructure.external.glm_client import GLMClient
 
 logger = get_logger(__name__)
@@ -152,8 +151,14 @@ class TradingConfig:
         print("-" * 60)
         print(f"  암호화폐 (Coin):       {coin_info['name']} ({self.coin.value})")
         print(f"  전략 (Strategy):      {self.strategy.value}")
-        print(f"  AI 지침 버전:         {self.instruction_version} - {version_info.get(self.instruction_version, '')}")
-        mode_str = "테스트넷 (Testnet)" if self.testnet_mode else ("시뮬레이션 (Dry Run)" if self.dry_run else "실거래 (Live Trading)")
+        print(
+            f"  AI 지침 버전:         {self.instruction_version} - {version_info.get(self.instruction_version, '')}"
+        )
+        mode_str = (
+            "테스트넷 (Testnet)"
+            if self.testnet_mode
+            else ("시뮬레이션 (Dry Run)" if self.dry_run else "실거래 (Live Trading)")
+        )
         print(f"  모드 (Mode):          {mode_str}")
         print("\n  전략 파라미터 (Strategy Parameters):")
         print(f"    - 최대 매수 비율:    {strategy_config.max_buy_percentage}%")
@@ -225,7 +230,9 @@ def select_strategy_interactive() -> TradingStrategy:
         config = strategy_manager.get_config_for_strategy(strategy)
         print(f"\n  {i}. {name}")
         print(f"     {desc}")
-        print(f"     최대 매수: {config.max_buy_percentage}% | 최대 매도: {config.max_sell_percentage}%")
+        print(
+            f"     최대 매수: {config.max_buy_percentage}% | 최대 매도: {config.max_sell_percentage}%"
+        )
 
     while True:
         try:
@@ -251,9 +258,9 @@ def confirm_dry_run() -> bool:
     while True:
         try:
             choice = input("\n시뮬레이션 모드로 실행하시겠습니까? (y/N): ").strip().lower()
-            if choice in ('y', 'yes', '예'):
+            if choice in ("y", "yes", "예"):
                 return True
-            elif choice in ('n', 'no', '아니오', ''):
+            elif choice in ("n", "no", "아니오", ""):
                 return False
             print("y 또는 n을 입력해주세요.")
         except KeyboardInterrupt:
@@ -283,7 +290,9 @@ def interactive_approval(approval: TradeApproval) -> bool:
     content_lines = [
         f"[bold]거래 유형:[/] {side_korean} ({approval.side.upper()})",
         f"[bold]티커:[/] {approval.ticker}",
-        f"[bold]수량/금액:[/] {approval.amount:,.8f}" if approval.side == "sell" else f"[bold]금액:[/] {approval.amount:,.0f} KRW",
+        f"[bold]수량/금액:[/] {approval.amount:,.8f}"
+        if approval.side == "sell"
+        else f"[bold]금액:[/] {approval.amount:,.0f} KRW",
     ]
 
     if approval.estimated_price:
@@ -353,8 +362,7 @@ async def execute_manual_buy(
         if auto_approve:
             console.print(
                 Panel(
-                    "[bold red]자동 승인 모드 활성화됨[/]\n"
-                    "사용자 승인 없이 거래가 실행됩니다.",
+                    "[bold red]자동 승인 모드 활성화됨[/]\n사용자 승인 없이 거래가 실행됩니다.",
                     title="[red]경고[/]",
                     border_style="red",
                 )
@@ -415,8 +423,7 @@ async def execute_manual_sell(
         if auto_approve:
             console.print(
                 Panel(
-                    "[bold red]자동 승인 모드 활성화됨[/]\n"
-                    "사용자 승인 없이 거래가 실행됩니다.",
+                    "[bold red]자동 승인 모드 활성화됨[/]\n사용자 승인 없이 거래가 실행됩니다.",
                     title="[red]경고[/]",
                     border_style="red",
                 )
@@ -481,8 +488,7 @@ async def execute_ai_driven_trade(
             # Calculate buy amount from percentage
             buy_amount = krw_balance * (ai_decision.percentage / 100)
             console.print(
-                f"\n[cyan]AI 결정: 매수 {ai_decision.percentage}% "
-                f"({buy_amount:,.0f} KRW)[/]"
+                f"\n[cyan]AI 결정: 매수 {ai_decision.percentage}% ({buy_amount:,.0f} KRW)[/]"
             )
             console.print(f"[dim]이유: {ai_decision.reason}[/]")
 
@@ -497,8 +503,7 @@ async def execute_ai_driven_trade(
             # Calculate sell quantity from percentage
             sell_quantity = coin_balance * (ai_decision.percentage / 100)
             console.print(
-                f"\n[cyan]AI 결정: 매도 {ai_decision.percentage}% "
-                f"({sell_quantity:.8f})[/]"
+                f"\n[cyan]AI 결정: 매도 {ai_decision.percentage}% ({sell_quantity:.8f})[/]"
             )
             console.print(f"[dim]이유: {ai_decision.reason}[/]")
 
@@ -589,8 +594,7 @@ def display_trade_result(result: TradeResult) -> None:
         )
     else:
         panel = Panel(
-            f"[bold red]거래 실패[/]\n\n"
-            f"[red]{result.error_message or '알 수 없는 오류'}[/]",
+            f"[bold red]거래 실패[/]\n\n[red]{result.error_message or '알 수 없는 오류'}[/]",
             title="[red]오류[/]",
             border_style="red",
         )
@@ -668,7 +672,9 @@ async def run_trading_session(config: TradingConfig) -> None:
             price_change = ((current_price / ohlcv_data[-1].close) - 1) * 100
 
         # Calculate average price for RSI approximation
-        avg_recent_price = sum(candle.close for candle in ohlcv_data[-14:]) / min(len(ohlcv_data), 14)
+        avg_recent_price = sum(candle.close for candle in ohlcv_data[-14:]) / min(
+            len(ohlcv_data), 14
+        )
 
         # Load instructions using InstructionManager
         instruction_manager = InstructionManager(base_path=Path(__file__).parent)
@@ -717,7 +723,9 @@ Respond with a JSON object containing:
         recent_candles = ohlcv_data[-5:] if len(ohlcv_data) >= 5 else ohlcv_data
         candle_lines = []
         for candle in recent_candles:
-            candle_lines.append(f"  Open: {candle.open:,.0f} | High: {candle.high:,.0f} | Low: {candle.low:,.0f} | Close: {candle.close:,.0f} | Volume: {candle.volume:,.2f}")
+            candle_lines.append(
+                f"  Open: {candle.open:,.0f} | High: {candle.high:,.0f} | Low: {candle.low:,.0f} | Close: {candle.close:,.0f} | Volume: {candle.volume:,.2f}"
+            )
 
         market_summary = f"""
 Recent Price Data (last {len(recent_candles)} days):
@@ -934,7 +942,8 @@ Examples:
 
     # AI instruction version
     parser.add_argument(
-        "--inst-v", "--instruction-version",
+        "--inst-v",
+        "--instruction-version",
         type=str,
         dest="instruction_version",
         choices=["v1", "v2", "v3"],
@@ -1141,16 +1150,18 @@ async def handle_security_status() -> int:
         remaining_minutes = security_service.get_lock_remaining_seconds() // 60
         status_lines.append(f"[bold]잠금 해제까지:[/bold] {remaining_minutes}분")
 
-    status_lines.extend([
-        "",
-        "[bold]거래 한도 설정:[/bold]",
-        f"  • 일일 최대 거래액: {settings.security.max_daily_volume_krw:,.0f} KRW",
-        f"  • 일일 최대 거래횟수: {settings.security.max_daily_trades}회",
-        f"  • 단일 거래 한도: {settings.security.max_single_trade_krw:,.0f} KRW",
-        f"  • 고액 거래 기준: {settings.security.high_value_threshold_krw:,.0f} KRW 이상",
-        f"  • 세션 최대 거래액: {settings.security.max_session_volume_krw:,.0f} KRW",
-        f"  • 세션 최대 거래횟수: {settings.security.max_session_trades}회",
-    ])
+    status_lines.extend(
+        [
+            "",
+            "[bold]거래 한도 설정:[/bold]",
+            f"  • 일일 최대 거래액: {settings.security.max_daily_volume_krw:,.0f} KRW",
+            f"  • 일일 최대 거래횟수: {settings.security.max_daily_trades}회",
+            f"  • 단일 거래 한도: {settings.security.max_single_trade_krw:,.0f} KRW",
+            f"  • 고액 거래 기준: {settings.security.high_value_threshold_krw:,.0f} KRW 이상",
+            f"  • 세션 최대 거래액: {settings.security.max_session_volume_krw:,.0f} KRW",
+            f"  • 세션 최대 거래횟수: {settings.security.max_session_trades}회",
+        ]
+    )
 
     console.print(
         Panel(

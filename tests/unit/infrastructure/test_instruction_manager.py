@@ -10,9 +10,8 @@ Tests cover:
 These tests follow TDD approach to achieve 85%+ coverage.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 class TestInstructionManager:
@@ -47,8 +46,8 @@ class TestInstructionManager:
         manager = InstructionManager()
 
         # Mock file existence
-        with patch.object(Path, 'exists', return_value=True):
-            with patch.object(Path, 'read_text', return_value="Test instruction"):
+        with patch.object(Path, "exists", return_value=True):
+            with patch.object(Path, "read_text", return_value="Test instruction"):
                 content = manager.load("test.md")
 
         assert content == "Test instruction"
@@ -59,7 +58,7 @@ class TestInstructionManager:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'exists', return_value=False):
+        with patch.object(Path, "exists", return_value=False):
             content = manager.load("nonexistent.md")
 
         assert content is None or content == ""
@@ -70,8 +69,8 @@ class TestInstructionManager:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch.object(Path, 'read_text', return_value="Cached content") as mock_read:
+        with patch.object(Path, "exists", return_value=True):
+            with patch.object(Path, "read_text", return_value="Cached content") as mock_read:
                 # First load
                 content1 = manager.load("cached.md")
                 # Second load (should use cache)
@@ -88,8 +87,8 @@ class TestInstructionManager:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch.object(Path, 'read_text', return_value="Content"):
+        with patch.object(Path, "exists", return_value=True):
+            with patch.object(Path, "read_text", return_value="Content"):
                 manager.load("test.md")
 
         manager.clear_cache()
@@ -106,14 +105,16 @@ class TestModularInstructions:
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'load') as mock_load:
+        with patch.object(manager, "load") as mock_load:
             mock_load.side_effect = lambda f: f"Content of {f}"
 
-            result = manager.load_modular([
-                "base.md",
-                "strategy.md",
-                "coin.md",
-            ])
+            result = manager.load_modular(
+                [
+                    "base.md",
+                    "strategy.md",
+                    "coin.md",
+                ]
+            )
 
         assert "base.md" in result
         assert "strategy.md" in result
@@ -121,12 +122,12 @@ class TestModularInstructions:
 
     def test_build_instruction_for_strategy_coin(self):
         """Should build instruction for strategy/coin combination."""
+        from gpt_bitcoin.domain import Cryptocurrency, TradingStrategy
         from gpt_bitcoin.infrastructure.instructions import InstructionManager
-        from gpt_bitcoin.domain import TradingStrategy, Cryptocurrency
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'load_modular') as mock_modular:
+        with patch.object(manager, "load_modular") as mock_modular:
             mock_modular.return_value = "Combined instruction"
 
             result = manager.build_for_context(
@@ -146,7 +147,7 @@ class TestInstructionVersions:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'glob') as mock_glob:
+        with patch.object(Path, "glob") as mock_glob:
             mock_glob.return_value = [
                 Path("instructions_v1.md"),
                 Path("instructions_v2.md"),
@@ -163,7 +164,7 @@ class TestInstructionVersions:
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'get_available_versions') as mock_versions:
+        with patch.object(manager, "get_available_versions") as mock_versions:
             mock_versions.return_value = ["v1", "v2", "v3"]
 
             latest = manager.get_latest_version()
@@ -188,7 +189,7 @@ class TestInstructionVersions:
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'load') as mock_load:
+        with patch.object(manager, "load") as mock_load:
             mock_load.return_value = "v2 instruction content"
 
             content = manager.load_version("v2")
@@ -234,20 +235,20 @@ class TestInstructionManagerEdgeCases:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch.object(Path, 'read_text', side_effect=IOError("Read error")):
+        with patch.object(Path, "exists", return_value=True):
+            with patch.object(Path, "read_text", side_effect=OSError("Read error")):
                 result = manager.load("error.md")
 
         assert result is None
 
     def test_build_context_with_all_params(self):
         """Should build context with all parameters."""
+        from gpt_bitcoin.domain import Cryptocurrency, TradingStrategy
         from gpt_bitcoin.infrastructure.instructions import InstructionManager
-        from gpt_bitcoin.domain import TradingStrategy, Cryptocurrency
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'load') as mock_load:
+        with patch.object(manager, "load") as mock_load:
             mock_load.return_value = "Instruction content"
 
             result = manager.build_for_context(
@@ -265,7 +266,7 @@ class TestInstructionManagerEdgeCases:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'glob', return_value=[]):
+        with patch.object(Path, "glob", return_value=[]):
             versions = manager.get_available_versions()
 
         assert versions == []
@@ -276,7 +277,7 @@ class TestInstructionManagerEdgeCases:
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'get_available_versions', return_value=[]):
+        with patch.object(manager, "get_available_versions", return_value=[]):
             latest = manager.get_latest_version()
 
         assert latest is None
@@ -287,7 +288,7 @@ class TestInstructionManagerEdgeCases:
 
         manager = InstructionManager()
 
-        with patch.object(manager, 'load') as mock_load:
+        with patch.object(manager, "load") as mock_load:
             mock_load.side_effect = lambda f: None if "v99" in f else "Base content"
 
             result = manager.load_version("v99")
@@ -324,8 +325,8 @@ class TestInstructionManagerEdgeCases:
 
         manager = InstructionManager()
 
-        with patch.object(Path, 'exists', return_value=True):
-            with patch.object(Path, 'read_text', return_value="Content") as mock_read:
+        with patch.object(Path, "exists", return_value=True):
+            with patch.object(Path, "read_text", return_value="Content") as mock_read:
                 manager.load("test.md")
                 manager.load("test.md")
 

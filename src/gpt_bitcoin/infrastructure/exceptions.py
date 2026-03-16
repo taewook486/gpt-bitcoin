@@ -5,13 +5,13 @@ This module defines specific exceptions for better error handling
 and enables proper error context in log messages.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class TradingError(Exception):
     """Base exception for trading operations."""
 
-    def __init__(self, message: str, context: Optional[dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         super().__init__(message)
         self.message = message
         self.context = context or {}
@@ -23,8 +23,8 @@ class UpbitAPIError(TradingError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        response_data: Optional[dict[str, Any]] = None,
+        status_code: int | None = None,
+        response_data: dict[str, Any] | None = None,
     ):
         super().__init__(message, {"status_code": status_code, "response": response_data})
         self.status_code = status_code
@@ -37,8 +37,8 @@ class GLMAPIError(TradingError):
     def __init__(
         self,
         message: str,
-        model: Optional[str] = None,
-        status_code: Optional[int] = None,
+        model: str | None = None,
+        status_code: int | None = None,
     ):
         super().__init__(message, {"model": model, "status_code": status_code})
         self.model = model
@@ -48,7 +48,7 @@ class GLMAPIError(TradingError):
 class SerpApiError(TradingError):
     """Exception for SerpApi errors."""
 
-    def __init__(self, message: str, query: Optional[str] = None):
+    def __init__(self, message: str, query: str | None = None):
         super().__init__(message, {"query": query})
         self.query = query
 
@@ -56,7 +56,7 @@ class SerpApiError(TradingError):
 class ConfigurationError(TradingError):
     """Exception for configuration errors."""
 
-    def __init__(self, message: str, setting_name: Optional[str] = None):
+    def __init__(self, message: str, setting_name: str | None = None):
         super().__init__(message, {"setting_name": setting_name})
         self.setting_name = setting_name
 
@@ -64,7 +64,7 @@ class ConfigurationError(TradingError):
 class DataFetchError(TradingError):
     """Exception for data fetching errors."""
 
-    def __init__(self, message: str, source: Optional[str] = None):
+    def __init__(self, message: str, source: str | None = None):
         super().__init__(message, {"source": source})
         self.source = source
 
@@ -72,7 +72,7 @@ class DataFetchError(TradingError):
 class AnalysisError(TradingError):
     """Exception for analysis errors."""
 
-    def __init__(self, message: str, data_type: Optional[str] = None):
+    def __init__(self, message: str, data_type: str | None = None):
         super().__init__(message, {"data_type": data_type})
         self.data_type = data_type
 
@@ -80,7 +80,7 @@ class AnalysisError(TradingError):
 class DecisionError(TradingError):
     """Exception for decision making errors."""
 
-    def __init__(self, message: str, decision: Optional[str] = None):
+    def __init__(self, message: str, decision: str | None = None):
         super().__init__(message, {"decision": decision})
         self.decision = decision
 
@@ -91,8 +91,8 @@ class ExecutionError(TradingError):
     def __init__(
         self,
         message: str,
-        order_type: Optional[str] = None,
-        ticker: Optional[str] = None,
+        order_type: str | None = None,
+        ticker: str | None = None,
     ):
         super().__init__(message, {"order_type": order_type, "ticker": ticker})
         self.order_type = order_type
@@ -116,7 +116,7 @@ class InsufficientBalanceError(TradingError):
 class RateLimitError(TradingError):
     """Exception for rate limiting."""
 
-    def __init__(self, message: str, retry_after: Optional[int] = None):
+    def __init__(self, message: str, retry_after: int | None = None):
         super().__init__(message, {"retry_after": retry_after})
         self.retry_after = retry_after
 
@@ -124,7 +124,7 @@ class RateLimitError(TradingError):
 class CircuitBreakerOpenError(TradingError):
     """Exception when circuit breaker is open."""
 
-    def __init__(self, service_name: str, recovery_time: Optional[float] = None):
+    def __init__(self, service_name: str, recovery_time: float | None = None):
         message = f"Circuit breaker open for {service_name}"
         super().__init__(message, {"service": service_name, "recovery_time": recovery_time})
         self.service_name = service_name

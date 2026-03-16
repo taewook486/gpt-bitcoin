@@ -29,9 +29,9 @@ from pydantic import BaseModel, Field
 from tenacity import (
     AsyncRetrying,
     RetryError,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from gpt_bitcoin.config.settings import Settings, get_settings
@@ -169,7 +169,7 @@ class UpbitClient:
 
         logger.info("Upbit client initialized")
 
-    async def __aenter__(self) -> "UpbitClient":
+    async def __aenter__(self) -> UpbitClient:
         """Enter async context manager."""
         await self._ensure_session()
         return self
@@ -208,21 +208,15 @@ class UpbitClient:
         }
 
         if query_params:
-            query_string = "&".join(
-                f"{k}={v}" for k, v in sorted(query_params.items())
-            )
+            query_string = "&".join(f"{k}={v}" for k, v in sorted(query_params.items()))
             query_hash = hashlib.sha512(query_string.encode()).hexdigest()
             payload["query_hash"] = query_hash
             payload["query_hash_alg"] = "SHA512"
 
         # Create JWT token
         header = {"alg": "HS256", "typ": "JWT"}
-        header_b64 = base64.urlsafe_b64encode(
-            json.dumps(header).encode()
-        ).decode()
-        payload_b64 = base64.urlsafe_b64encode(
-            json.dumps(payload).encode()
-        ).decode()
+        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode()
+        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
 
         # Sign with secret key
         message = f"{header_b64}.{payload_b64}"
@@ -312,9 +306,7 @@ class UpbitClient:
                         data = await response.json()
 
                         if response.status >= 400:
-                            error_msg = data.get("error", {}).get(
-                                "message", "Unknown error"
-                            )
+                            error_msg = data.get("error", {}).get("message", "Unknown error")
                             logger.error(
                                 "Upbit API error",
                                 status=response.status,

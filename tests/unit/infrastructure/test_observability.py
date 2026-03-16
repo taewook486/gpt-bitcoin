@@ -12,16 +12,15 @@ These tests follow TDD approach to achieve 85%+ coverage.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 
 from gpt_bitcoin.infrastructure.observability import (
-    get_tracer,
-    get_meter_provider,
-    configure_telemetry,
-    create_metrics,
-    record_span,
     HealthChecker,
+    configure_telemetry,
     create_health_check_endpoint,
+    create_metrics,
+    get_meter_provider,
+    get_tracer,
+    record_span,
 )
 
 
@@ -32,9 +31,11 @@ class TestGetTracer:
         """get_tracer should create a tracer provider."""
         # Reset global state
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
 
         from opentelemetry.sdk.trace import TracerProvider
+
         tracer = get_tracer()
 
         assert tracer is not None
@@ -43,6 +44,7 @@ class TestGetTracer:
     def test_get_tracer_returns_same_instance(self):
         """get_tracer should return cached instance."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
 
         tracer1 = get_tracer()
@@ -57,9 +59,11 @@ class TestGetMeterProvider:
     def test_get_meter_provider_creates_provider(self):
         """get_meter_provider should create a meter provider."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._global_meter_provider = None
 
         from opentelemetry.sdk.metrics import MeterProvider
+
         meter = get_meter_provider()
 
         assert meter is not None
@@ -68,6 +72,7 @@ class TestGetMeterProvider:
     def test_get_meter_provider_returns_same_instance(self):
         """get_meter_provider should return cached instance."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._global_meter_provider = None
 
         meter1 = get_meter_provider()
@@ -82,6 +87,7 @@ class TestConfigureTelemetry:
     def test_configure_telemetry_default(self):
         """configure_telemetry should configure with defaults."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
         obs_module._global_meter_provider = None
 
@@ -93,12 +99,11 @@ class TestConfigureTelemetry:
     def test_configure_telemetry_with_service_name(self):
         """configure_telemetry should accept service name."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
         obs_module._global_meter_provider = None
 
-        tracer, meter = configure_telemetry(
-            service_name="Test Service"
-        )
+        tracer, meter = configure_telemetry(service_name="Test Service")
 
         assert tracer is not None
         assert meter is not None
@@ -106,6 +111,7 @@ class TestConfigureTelemetry:
     def test_configure_telemetry_with_log_level(self):
         """configure_telemetry should accept log level."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
         obs_module._global_meter_provider = None
 
@@ -117,12 +123,11 @@ class TestConfigureTelemetry:
     def test_configure_telemetry_with_otlp_endpoint(self):
         """configure_telemetry should handle OTLP endpoint."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
         obs_module._global_meter_provider = None
 
-        tracer, meter = configure_telemetry(
-            otlp_endpoint="http://localhost:4317"
-        )
+        tracer, meter = configure_telemetry(otlp_endpoint="http://localhost:4317")
 
         assert tracer is not None
         assert meter is not None
@@ -134,6 +139,7 @@ class TestCreateMetrics:
     def test_create_metrics_returns_dict(self):
         """create_metrics should return metrics dictionary."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._global_meter_provider = None
 
         metrics = create_metrics()
@@ -147,6 +153,7 @@ class TestCreateMetrics:
     def test_create_metrics_counter_types(self):
         """create_metrics counters should be callable."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._global_meter_provider = None
 
         metrics = create_metrics()
@@ -166,6 +173,7 @@ class TestRecordSpan:
     def test_record_span_creates_span(self):
         """record_span should create and return a span."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
 
         tracer = get_tracer()
@@ -176,14 +184,11 @@ class TestRecordSpan:
     def test_record_span_with_attributes(self):
         """record_span should set attributes on span."""
         import gpt_bitcoin.infrastructure.observability as obs_module
+
         obs_module._tracer_provider = None
 
         tracer = get_tracer()
-        span = record_span(
-            tracer,
-            "test_span",
-            attributes={"key": "value", "number": 123}
-        )
+        span = record_span(tracer, "test_span", attributes={"key": "value", "number": 123})
 
         assert span is not None
 

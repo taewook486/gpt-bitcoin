@@ -1,13 +1,14 @@
 # Tests for OpenTelemetry Tracing Configuration
 import os
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from gpt_bitcoin.infrastructure.observability.tracing import (
+    HealthChecker,
+    create_metrics,
     get_tracer,
     setup_tracing,
-    create_metrics,
-    HealthChecker,
 )
 
 
@@ -17,6 +18,7 @@ class TestGetTracer:
     def test_tracer_is_singleton(self):
         """Test that get_tracer returns the same instance."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._tracer_provider = None
 
         tracer1 = get_tracer()
@@ -27,6 +29,7 @@ class TestGetTracer:
     def test_tracer_has_service_name(self):
         """Test service name configuration."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._tracer_provider = None
 
         tracer = get_tracer()
@@ -39,6 +42,7 @@ class TestSetupTracing:
     def test_default_setup(self):
         """Test default configuration."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._tracer_provider = None
 
         setup_tracing()
@@ -50,11 +54,10 @@ class TestSetupTracing:
     def test_otlp_endpoint_setup(self):
         """Test OTLP endpoint configuration."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._tracer_provider = None
 
-        setup_tracing(
-            otlp_endpoint="http://localhost:4317"
-        )
+        setup_tracing(otlp_endpoint="http://localhost:4317")
 
         # Verify OTLP exporter is configured
         tracer = get_tracer()
@@ -64,6 +67,7 @@ class TestSetupTracing:
     def test_log_level_setup(self):
         """Test log level configuration."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._tracer_provider = None
 
         setup_tracing(log_level="DEBUG")
@@ -78,6 +82,7 @@ class TestCreateMetrics:
     def test_default_metrics(self):
         """Test default metrics creation."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._global_meter_provider = None
 
         metrics = create_metrics()
@@ -90,6 +95,7 @@ class TestCreateMetrics:
     def test_metrics_counter_has_add_method(self):
         """Test metrics counter has add method."""
         import gpt_bitcoin.infrastructure.observability.tracing as tracing_module
+
         tracing_module._global_meter_provider = None
 
         metrics = create_metrics()

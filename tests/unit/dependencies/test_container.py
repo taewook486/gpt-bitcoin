@@ -8,10 +8,7 @@ Tests cover:
 - Container lifecycle management
 """
 
-import pytest
-
 from gpt_bitcoin.dependencies.container import (
-    Container,
     clear_overrides,
     get_container,
     reset_container,
@@ -137,6 +134,7 @@ class TestOverrideForTesting:
     def test_override_glm_client(self):
         """override_for_testing should override GLM client."""
         from unittest.mock import MagicMock
+
         from gpt_bitcoin.dependencies.container import override_for_testing
 
         mock_glm = MagicMock()
@@ -148,6 +146,7 @@ class TestOverrideForTesting:
     def test_override_upbit_client(self):
         """override_for_testing should override Upbit client."""
         from unittest.mock import MagicMock
+
         from gpt_bitcoin.dependencies.container import override_for_testing
 
         mock_upbit = MagicMock()
@@ -159,6 +158,7 @@ class TestOverrideForTesting:
     def test_override_both_clients(self):
         """override_for_testing should override both clients."""
         from unittest.mock import MagicMock
+
         from gpt_bitcoin.dependencies.container import override_for_testing
 
         mock_glm = MagicMock()

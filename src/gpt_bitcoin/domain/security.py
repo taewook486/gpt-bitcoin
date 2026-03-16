@@ -23,9 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 if TYPE_CHECKING:
     from gpt_bitcoin.config.settings import Settings
     from gpt_bitcoin.domain.audit import AuditRecord, AuditRepository
-    from gpt_bitcoin.infrastructure.logging import BoundLogger
     from gpt_bitcoin.domain.trading import TradeApproval, TradeResult, TradingService
-    from gpt_bitcoin.infrastructure.logging import BoundLogger
 
 
 # =============================================================================
@@ -179,8 +177,18 @@ class SecurityService:
     MAX_PIN_FAILURES: ClassVar[int] = 5
     LOCK_DURATION_SECONDS: ClassVar[int] = 300  # 5 minutes
     WEAK_PINS: ClassVar[set[str]] = {
-        "1234", "4321", "1111", "2222", "3333", "4444",
-        "5555", "6666", "7777", "8888", "9999", "0000"
+        "1234",
+        "4321",
+        "1111",
+        "2222",
+        "3333",
+        "4444",
+        "5555",
+        "6666",
+        "7777",
+        "8888",
+        "9999",
+        "0000",
     }
 
     trading_service: TradingService
@@ -246,12 +254,24 @@ class SecurityService:
 
             # Check if should lock
             if security.pin_failure_count >= self.MAX_PIN_FAILURES:
-                security.locked_until = (
-                    datetime.datetime.now()
-                    + datetime.timedelta(seconds=self.LOCK_DURATION_SECONDS)
+                security.locked_until = datetime.datetime.now() + datetime.timedelta(
+                    seconds=self.LOCK_DURATION_SECONDS
                 )
 
             return False
+
+    async def is_pin_set(self) -> bool:
+        """
+        Check if PIN has been configured.
+
+        Returns:
+            bool: True if PIN is set, False otherwise
+
+        @MX:NOTE: Non-blocking check for PIN status.
+            Used by UI to determine whether to show PIN setup.
+        """
+        security = self.settings.security
+        return security.pin_hash is not None
 
     async def setup_pin(self, new_pin: str) -> None:
         """
@@ -268,7 +288,9 @@ class SecurityService:
         """
         # Check if already set
         if self.settings.security.pin_hash is not None:
-            raise PinAlreadySetError("PIN이 이미 설정되어 있습니다. 변경하려면 change_pin을 사용하세요.")
+            raise PinAlreadySetError(
+                "PIN이 이미 설정되어 있습니다. 변경하려면 change_pin을 사용하세요."
+            )
 
         # Validate PIN strength
         self._validate_pin_strength(new_pin)
@@ -351,7 +373,9 @@ class SecurityService:
             raise ValueError("PIN은 4자리 숫자여야 합니다.")
 
         if pin in self.WEAK_PINS:
-            raise ValueError(f"약한 PIN입니다: {pin}. 연속되거나 반복되는 숫자는 사용할 수 없습니다.")
+            raise ValueError(
+                f"약한 PIN입니다: {pin}. 연속되거나 반복되는 숫자는 사용할 수 없습니다."
+            )
 
     # =========================================================================
     # Limits Methods

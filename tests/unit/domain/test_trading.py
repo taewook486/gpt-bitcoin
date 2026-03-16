@@ -67,9 +67,7 @@ def trading_service(mock_upbit_client, mock_settings, mock_logger):
 def mock_orderbook():
     """Mock orderbook response."""
     orderbook = MagicMock()
-    orderbook.orderbook_units = [
-        MagicMock(ask_price=50000000.0, bid_price=49990000.0)
-    ]
+    orderbook.orderbook_units = [MagicMock(ask_price=50000000.0, bid_price=49990000.0)]
     return orderbook
 
 
@@ -230,7 +228,9 @@ class TestTradingServiceBuyOrder:
 
     @pytest.mark.asyncio
     async def test_request_buy_order_minimum_amount_validation(
-        self, trading_service, mock_upbit_client  # noqa: ARG002
+        self,
+        trading_service,
+        mock_upbit_client,  # noqa: ARG002
     ):
         """Test that buy orders below minimum amount are rejected."""
         # Amount below 5000 KRW should be rejected
@@ -238,9 +238,7 @@ class TestTradingServiceBuyOrder:
             await trading_service.request_buy_order("KRW-BTC", 1000.0)
 
     @pytest.mark.asyncio
-    async def test_request_buy_order_insufficient_balance(
-        self, trading_service, mock_upbit_client
-    ):
+    async def test_request_buy_order_insufficient_balance(self, trading_service, mock_upbit_client):
         """Test that buy orders with insufficient balance are rejected."""
         # Mock balance response (less than requested amount)
         mock_upbit_client.get_balance.return_value = 1000.0
@@ -341,7 +339,9 @@ class TestTradingServiceSellOrder:
 
     @pytest.mark.asyncio
     async def test_request_sell_order_invalid_quantity(
-        self, trading_service, mock_upbit_client  # noqa: ARG002
+        self,
+        trading_service,
+        mock_upbit_client,  # noqa: ARG002
     ):
         """Test that sell orders with invalid quantity are rejected."""
         with pytest.raises(ValueError, match="매도 수량은 0보다 커야 합니다"):
@@ -430,9 +430,7 @@ class TestTradingServiceStateManagement:
         assert trading_service.state == TradingState.IDLE
 
     @pytest.mark.asyncio
-    async def test_cancel_pending_request(
-        self, trading_service, mock_upbit_client, mock_orderbook
-    ):
+    async def test_cancel_pending_request(self, trading_service, mock_upbit_client, mock_orderbook):
         """Test canceling a pending request."""
         # Create pending request
         mock_upbit_client.get_balance.return_value = 100000.0
@@ -465,9 +463,7 @@ class TestTradingServiceErrorHandling:
     """Tests for TradingService error handling."""
 
     @pytest.mark.asyncio
-    async def test_buy_order_api_failure(
-        self, trading_service, mock_upbit_client, mock_orderbook
-    ):
+    async def test_buy_order_api_failure(self, trading_service, mock_upbit_client, mock_orderbook):
         """Test handling of API failure during buy order."""
         # Request approval
         mock_upbit_client.get_balance.return_value = 100000.0
@@ -486,7 +482,9 @@ class TestTradingServiceErrorHandling:
 
     @pytest.mark.asyncio
     async def test_no_matching_pending_request(
-        self, trading_service, mock_upbit_client  # noqa: ARG002
+        self,
+        trading_service,
+        mock_upbit_client,  # noqa: ARG002
     ):
         """Test execution when there's no matching pending request."""
         approval = TradeApproval(
@@ -614,9 +612,7 @@ class TestTradingServiceEdgeCases:
         assert approval.amount == 5000.0
 
     @pytest.mark.asyncio
-    async def test_orderbook_unavailable_fallback(
-        self, trading_service, mock_upbit_client
-    ):
+    async def test_orderbook_unavailable_fallback(self, trading_service, mock_upbit_client):
         """Test fallback when orderbook is unavailable."""
         # Mock balance but fail orderbook
         mock_upbit_client.get_balance.return_value = 100000.0

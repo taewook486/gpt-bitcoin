@@ -25,15 +25,29 @@ from __future__ import annotations
 from dependency_injector import containers, providers
 
 from gpt_bitcoin.config.settings import Settings, get_settings
+from gpt_bitcoin.domain.analytics import PortfolioAnalyticsService
+from gpt_bitcoin.domain.backup import BackupService
+from gpt_bitcoin.domain.notification import NotificationService
+from gpt_bitcoin.domain.security import SecurityService
 from gpt_bitcoin.domain.testnet_config import TestnetConfig
 from gpt_bitcoin.domain.trading import TradingService
-from gpt_bitcoin.domain.security import SecurityService
+from gpt_bitcoin.domain.user_profile import UserProfileService
 from gpt_bitcoin.infrastructure.external.glm_client import GLMClient
 from gpt_bitcoin.infrastructure.external.mock_upbit_client import MockUpbitClient
 from gpt_bitcoin.infrastructure.external.upbit_client import UpbitClient
 from gpt_bitcoin.infrastructure.persistence.audit_repository import (
     SQLiteAuditRepository,
 )
+from gpt_bitcoin.infrastructure.persistence.notification_repository import (
+    NotificationRepository,
+)
+from gpt_bitcoin.infrastructure.persistence.profile_repository import (
+    ProfileRepository,
+)
+from gpt_bitcoin.infrastructure.persistence.trade_repository import TradeRepository
+from gpt_bitcoin.infrastructure.rate_limiting.rate_limiter import RateLimiter
+from gpt_bitcoin.infrastructure.resilience.circuit_breaker import CircuitBreaker
+from gpt_bitcoin.infrastructure.resilience.retry import RetryConfig
 
 
 class Container(containers.DeclarativeContainer):
@@ -62,8 +76,95 @@ class Container(containers.DeclarativeContainer):
     # Infrastructure - External API Clients
     # =========================================================================
 
+    # =========================================================================
+    # Infrastructure - Rate Limiting & Resilience (REQ-RATE-001)
+    # =========================================================================
+
+    # Rate limiter for GLM API (60 requests/hour default)
+    # @MX:ANCHOR: glm_rate_limiter
+    # @MX:REASON: GLM API 호출 속도 제한의 중앙 진입점
+    # fan_in: 2+ (GLMClient, tests)
+    def _create_glm_rate_limiter(settings: Settings) -> RateLimiter:
+        """Create rate limiter for GLM API."""
+        return RateLimiter(
+            default_capacity=settings.openai_requests_per_hour,  # 60/hour
+            default_refill_rate=settings.openai_requests_per_hour / 3600,  # tokens/second
+        )
+
+    glm_rate_limiter: providers.Provider[RateLimiter] = providers.Singleton(
+        _create_glm_rate_limiter,
+        settings=settings,
+    )
+
+    # Rate limiter for Upbit API (10 requests/second, 600 requests/minute)
+    # @MX:ANCHOR: upbit_rate_limiter
+    # @MX:REASON: Upbit API 호출 속도 제한의 중앙 진입점
+    # fan_in: 2+ (UpbitClient, MockUpbitClient, tests)
+    def _create_upbit_rate_limiter(settings: Settings) -> RateLimiter:
+        """Create rate limiter for Upbit API."""
+        return RateLimiter(
+            default_capacity=settings.upbit_requests_per_second,  # 10 tokens
+            default_refill_rate=settings.upbit_requests_per_second,  # 10 tokens/second
+        )
+
+    upbit_rate_limiter: providers.Provider[RateLimiter] = providers.Singleton(
+        _create_upbit_rate_limiter,
+        settings=settings,
+    )
+
+    # Circuit breaker for GLM API
+    # @MX:ANCHOR: glm_circuit_breaker
+    # @MX:REASON: GLM API 장애 격리의 중앙 진입점
+    # fan_in: 2+ (ProtectedAPIClient, tests)
+    def _create_glm_circuit_breaker(settings: Settings) -> CircuitBreaker:
+        """Create circuit breaker for GLM API."""
+        return CircuitBreaker(
+            name="glm-api",
+            failure_threshold=settings.circuit_failure_threshold,  # 5 failures
+            recovery_timeout=float(settings.circuit_recovery_timeout),  # 60 seconds
+        )
+
+    glm_circuit_breaker: providers.Provider[CircuitBreaker] = providers.Singleton(
+        _create_glm_circuit_breaker,
+        settings=settings,
+    )
+
+    # Circuit breaker for Upbit API
+    # @MX:ANCHOR: upbit_circuit_breaker
+    # @MX:REASON: Upbit API 장애 격리의 중앙 진입점
+    # fan_in: 2+ (ProtectedAPIClient, tests)
+    def _create_upbit_circuit_breaker(settings: Settings) -> CircuitBreaker:
+        """Create circuit breaker for Upbit API."""
+        return CircuitBreaker(
+            name="upbit-api",
+            failure_threshold=settings.circuit_failure_threshold,  # 5 failures
+            recovery_timeout=float(settings.circuit_recovery_timeout),  # 60 seconds
+        )
+
+    upbit_circuit_breaker: providers.Provider[CircuitBreaker] = providers.Singleton(
+        _create_upbit_circuit_breaker,
+        settings=settings,
+    )
+
+    # Retry config for API calls
+    # @MX:NOTE: Retry config는 공통 설정 사용
+    def _create_api_retry_config(settings: Settings) -> RetryConfig:
+        """Create retry config for API calls."""
+        return RetryConfig(
+            max_attempts=settings.api_max_retries,  # 3 attempts
+            base_delay=settings.api_base_delay,  # 1 second
+            max_delay=settings.api_max_delay,  # 60 seconds
+            exponential_multiplier=2.0,
+            jitter=True,
+        )
+
+    api_retry_config: providers.Provider[RetryConfig] = providers.Singleton(
+        _create_api_retry_config,
+        settings=settings,
+    )
+
     # GLM client - Singleton to reuse rate limiter state
-    # Always uses global endpoint: https://api.z.ai/api/paas/v4/
+    # Always uses global endpoint: https://api.z.ai/api/coding/paas/v4/
     glm_client: providers.Provider[GLMClient] = providers.Singleton(
         GLMClient,
         settings=settings,
@@ -118,6 +219,33 @@ class Container(containers.DeclarativeContainer):
         settings=settings,
     )
 
+    # Profile repository - Singleton for shared database connection
+    # @MX:ANCHOR: profile_repository
+    # @MX:REASON: 사용자 프로필 저장소의 중앙 진입점
+    # fan_in: 2+ (UserProfileService, future web UI)
+    profile_repository: providers.Provider[ProfileRepository] = providers.Singleton(
+        ProfileRepository,
+        settings=settings,
+    )
+
+    # Notification repository - Singleton for shared database connection
+    # @MX:ANCHOR: notification_repository
+    # @MX:REASON: 알림 저장소의 중앙 진입점
+    # fan_in: 2+ (NotificationService, InAppChannel)
+    notification_repository: providers.Provider[NotificationRepository] = providers.Singleton(
+        NotificationRepository,
+        settings=settings,
+    )
+
+    # Trade repository - Singleton for shared database connection
+    # @MX:ANCHOR: trade_repository
+    # @MX:REASON: 거래 내역 저장소의 중앙 진입점
+    # fan_in: 3+ (TradeHistoryService, TradingService, web_ui.py)
+    trade_repository: providers.Provider[TradeRepository] = providers.Singleton(
+        TradeRepository,
+        settings=settings,
+    )
+
     # =========================================================================
     # Domain Services
     # =========================================================================
@@ -128,6 +256,7 @@ class Container(containers.DeclarativeContainer):
         TradingService,
         upbit_client=upbit_client,
         settings=settings,
+        trade_repository=trade_repository,
     )
 
     # @MX:ANCHOR: SecurityService
@@ -139,6 +268,61 @@ class Container(containers.DeclarativeContainer):
         trading_service=trading_service,
         settings=settings,
         audit_repository=audit_repository,
+    )
+
+    # @MX:ANCHOR: UserProfileService
+    # @MX:REASON: 사용자 프로필 관리 서비스의 중앙 진입점
+    # fan_in: 2+ (future web UI, notification system)
+    # @MX:NOTE: Factory를 사용하여 매 요청마다 새 인스턴스 생성
+    user_profile_service: providers.Provider[UserProfileService] = providers.Factory(
+        UserProfileService,
+        repository=profile_repository,
+        security_service=security_service,
+    )
+
+    # @MX:ANCHOR: NotificationService
+    # @MX:REASON: 알림 전송 서비스의 중앙 진입점
+    # fan_in: 2+ (TradingService, future web UI)
+    # @MX:NOTE: Factory를 사용하여 매 요청마다 새 인스턴스 생성
+    notification_service: providers.Provider[NotificationService] = providers.Factory(
+        NotificationService,
+        user_profile_service=user_profile_service,
+        email_channel=None,  # TODO: Configure when SMTP is available
+        in_app_channel=None,  # TODO: Configure InAppChannel
+    )
+
+    # @MX:ANCHOR: backup_service
+    # @MX:REASON: 백업 및 복구 서비스의 중앙 진입점
+    # fan_in: 2+ (web UI, scheduler)
+    # @MX:NOTE: Factory를 사용하여 매 요청마다 새 인스턴스 생성
+    def _create_backup_service(
+        settings: Settings,
+        user_profile_service: UserProfileService,
+        trade_history_service: TradingService,
+    ) -> BackupService:
+        """Create backup service with configuration."""
+        return BackupService(
+            config=settings.backup,
+            settings=settings,
+            user_profile_service=user_profile_service,
+            trade_history_service=trade_history_service,
+        )
+
+    backup_service: providers.Provider[BackupService] = providers.Factory(
+        _create_backup_service,
+        settings=settings,
+        user_profile_service=user_profile_service,
+        trade_history_service=trading_service,
+    )
+
+    # @MX:ANCHOR: portfolio_analytics_service
+    # @MX:REASON: 포트폴리오 분석 서비스의 중앙 진입점 (SPEC-TRADING-008)
+    # fan_in: 2+ (Portfolio Dashboard, Analytics API)
+    # @MX:NOTE: Factory를 사용하여 매 요청마다 새 인스턴스 생성
+    portfolio_analytics_service: providers.Provider[PortfolioAnalyticsService] = providers.Factory(
+        PortfolioAnalyticsService,
+        trade_history_service=trading_service,
+        upbit_client=mode_aware_upbit_client,
     )
 
 
