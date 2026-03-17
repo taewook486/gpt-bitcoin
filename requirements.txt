@@ -1,12 +1,2 @@
-python-dotenv
-zhipuai
-anthropic
-pyupbit
-pyjwt
-pandas
-# pandas_ta  # Python 3.14 호환성 문제로 일시 제거
-schedule
-streamlit
-selenium
-rich
-aiosqlite
+# Install project with all dependencies from pyproject.toml
+-e .
