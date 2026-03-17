@@ -245,6 +245,11 @@ class TradingService:
         self._pending_request: TradeRequest | None = None
 
     @property
+    def upbit_client(self) -> UpbitClient:
+        """Expose the Upbit client for external access (e.g., SecurityService)."""
+        return self._upbit_client
+
+    @property
     def state(self) -> TradingState:
         """Get current trading state."""
         return self._state

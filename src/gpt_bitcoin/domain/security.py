@@ -18,7 +18,7 @@ import secrets
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from gpt_bitcoin.config.settings import Settings
@@ -110,7 +110,9 @@ class SecuritySettingsModel(BaseModel):
     pin_hash: str | None = Field(default=None, description="SHA-256 hash of PIN")
     pin_salt: str | None = Field(default=None, description="Salt for PIN hashing")
     pin_failure_count: int = Field(default=0, ge=0, description="Consecutive PIN failures")
-    locked_until: str | None = Field(default=None, description="Lock expiration ISO datetime")
+    locked_until: datetime.datetime | None = Field(
+        default=None, description="Lock expiration datetime"
+    )
     max_daily_volume_krw: float = Field(
         default=10_000_000.0,
         ge=0,
@@ -133,17 +135,6 @@ class SecuritySettingsModel(BaseModel):
         description="Max KRW per session",
     )
     max_session_trades: int = Field(default=10, ge=0, description="Max trades per session")
-
-    @field_validator("locked_until")
-    @classmethod
-    def parse_locked_until(cls, v: str | None) -> datetime.datetime | None:
-        """Parse locked_until string to datetime."""
-        if v is None:
-            return None
-        try:
-            return datetime.datetime.fromisoformat(v)
-        except ValueError:
-            return None
 
 
 # =============================================================================
@@ -243,6 +234,8 @@ class SecurityService:
             raise PinNotSetError("PIN이 설정되지 않았습니다. 먼저 PIN을 설정해주세요.")
 
         # Verify PIN
+        if security.pin_salt is None:
+            raise PinNotSetError("PIN salt가 설정되지 않았습니다.")
         pin_hash = self._hash_pin(pin, security.pin_salt)
         if pin_hash == security.pin_hash:
             # Correct PIN - reset failure count
@@ -259,19 +252,6 @@ class SecurityService:
                 )
 
             return False
-
-    async def is_pin_set(self) -> bool:
-        """
-        Check if PIN has been configured.
-
-        Returns:
-            bool: True if PIN is set, False otherwise
-
-        @MX:NOTE: Non-blocking check for PIN status.
-            Used by UI to determine whether to show PIN setup.
-        """
-        security = self.settings.security
-        return security.pin_hash is not None
 
     async def setup_pin(self, new_pin: str) -> None:
         """
@@ -352,6 +332,19 @@ class SecurityService:
 
         remaining = self.settings.security.locked_until - datetime.datetime.now()
         return max(0, int(remaining.total_seconds()))
+
+    def get_security_status(self) -> dict[str, object]:
+        """Return current security state for UI display."""
+        security = self.settings.security
+        return {
+            "is_locked": self.is_locked(),
+            "lock_remaining_seconds": self.get_lock_remaining_seconds(),
+            "failed_attempts": security.pin_failure_count,
+            "daily_volume_limit": security.max_daily_volume_krw,
+            "daily_trade_count": 0,
+            "daily_trade_count_limit": security.max_daily_trades,
+            "is_pin_set": self.is_pin_set(),
+        }
 
     def _hash_pin(self, pin: str, salt: str) -> str:
         """Hash PIN with salt using SHA-256."""
