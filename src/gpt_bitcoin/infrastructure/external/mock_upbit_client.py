@@ -9,12 +9,15 @@ All operations are performed in-memory with virtual balance.
 
 from __future__ import annotations
 
+import random
+import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import ClassVar
 
 from gpt_bitcoin.domain.testnet_config import MockBalance, TestnetConfig
+from gpt_bitcoin.infrastructure.external.upbit_client import OHLCV
 
 
 @dataclass
@@ -58,6 +61,7 @@ class _Balance:
     currency: str
     balance: float
     avg_buy_price: float | None
+    locked: float = 0.0
 
 
 @dataclass
@@ -92,6 +96,14 @@ class MockUpbitClient:
         "KRW-AVAX": 35_000.0,
         "KRW-DOT": 25.0,
     }
+
+    async def __aenter__(self) -> MockUpbitClient:
+        """Enter async context manager."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit async context manager."""
+        await self.close()
 
     def __init__(self, config: TestnetConfig | None = None) -> None:
         """
@@ -132,6 +144,69 @@ class MockUpbitClient:
             ],
             timestamp=datetime.now(),
         )
+
+    async def get_ohlcv(
+        self,
+        ticker: str = "KRW-BTC",
+        interval: str = "day",
+        count: int = 30,
+    ) -> list[OHLCV]:
+        """
+        Get OHLCV candlestick data (simulated).
+
+        Args:
+            ticker: Market ticker (default: "KRW-BTC")
+            interval: Candle interval (day, minute1, minute60, etc.)
+            count: Number of candles to generate
+
+        Returns:
+            List of mock OHLCV data with realistic price variations
+        """
+        base_price = self._SIMULATED_PRICES.get(ticker, 50_000_000.0)
+        now_ts = int(time.time() * 1000)
+
+        # Interval to milliseconds mapping
+        interval_ms_map: dict[str, int] = {
+            "day": 86_400_000,
+            "minute1": 60_000,
+            "minute3": 180_000,
+            "minute5": 300_000,
+            "minute10": 600_000,
+            "minute15": 900_000,
+            "minute30": 1_800_000,
+            "minute60": 3_600_000,
+            "minute240": 14_400_000,
+            "week": 604_800_000,
+            "month": 2_592_000_000,
+        }
+        candle_ms = interval_ms_map.get(interval, 86_400_000)
+
+        candles: list[OHLCV] = []
+        price = base_price
+
+        for i in range(count, 0, -1):
+            # Random walk: +-2% per candle
+            change_pct = random.uniform(-0.02, 0.02)
+            open_price = price
+            close_price = open_price * (1 + change_pct)
+            high_price = max(open_price, close_price) * random.uniform(1.0, 1.015)
+            low_price = min(open_price, close_price) * random.uniform(0.985, 1.0)
+            volume = random.uniform(100.0, 5000.0)
+
+            candles.append(
+                OHLCV(
+                    market=ticker,
+                    timestamp=now_ts - (i * candle_ms),
+                    open=round(open_price, 2),
+                    high=round(high_price, 2),
+                    low=round(low_price, 2),
+                    close=round(close_price, 2),
+                    volume=round(volume, 4),
+                )
+            )
+            price = close_price
+
+        return candles
 
     async def get_current_price(self, ticker: str = "KRW-BTC") -> float:
         """
