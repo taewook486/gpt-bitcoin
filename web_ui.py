@@ -56,19 +56,19 @@ logger = get_logger(__name__)
 
 # 인터벌별 설정 (캔들 수, 캐시 TTL(초), 표시 라벨)
 INTERVAL_CONFIG = {
-    "minute1":   {"count": 60,  "ttl": 30,   "label": "1분"},
-    "minute30":  {"count": 48,  "ttl": 120,  "label": "30분"},
-    "minute60":  {"count": 48,  "ttl": 300,  "label": "1시간"},
-    "minute240": {"count": 42,  "ttl": 600,  "label": "4시간"},
-    "day":       {"count": 30,  "ttl": 300,  "label": "1일"},
+    "minute1": {"count": 60, "ttl": 30, "label": "1분"},
+    "minute30": {"count": 48, "ttl": 120, "label": "30분"},
+    "minute60": {"count": 48, "ttl": 300, "label": "1시간"},
+    "minute240": {"count": 42, "ttl": 600, "label": "4시간"},
+    "day": {"count": 30, "ttl": 300, "label": "1일"},
 }
 # AI 분석 캐시 TTL (인터벌별)
 AI_CACHE_TTL = {
-    "minute1":   120,
-    "minute30":  600,
-    "minute60":  1200,
+    "minute1": 120,
+    "minute30": 600,
+    "minute60": 1200,
     "minute240": 3600,
-    "day":       300,
+    "day": 300,
 }
 
 # =============================================================================
@@ -131,6 +131,7 @@ if not st.session_state.pin_verified and "pin_auto_checked" not in st.session_st
         container = get_container()
         security_service = container.security_service()
         import asyncio
+
         if security_service.is_pin_set():
             st.session_state.pin_verified = True
         st.session_state.pin_auto_checked = True
@@ -226,7 +227,9 @@ with st.sidebar:
     # Chart Interval Selector
     st.subheader("차트 인터벌")
     interval_labels = {cfg["label"]: key for key, cfg in INTERVAL_CONFIG.items()}
-    current_label = INTERVAL_CONFIG.get(st.session_state.selected_interval, INTERVAL_CONFIG["minute60"])["label"]
+    current_label = INTERVAL_CONFIG.get(
+        st.session_state.selected_interval, INTERVAL_CONFIG["minute60"]
+    )["label"]
     selected_interval_label = st.radio(
         "인터벌 선택",
         options=list(interval_labels.keys()),
@@ -240,7 +243,9 @@ with st.sidebar:
 
     # Auto-refresh Settings
     st.subheader("자동 새로고침")
-    st.session_state.auto_refresh = st.checkbox("자동 새로고침", value=st.session_state.auto_refresh)
+    st.session_state.auto_refresh = st.checkbox(
+        "자동 새로고침", value=st.session_state.auto_refresh
+    )
     if st.session_state.auto_refresh:
         st.session_state.refresh_interval = st.slider(
             "갱신 간격 (초)",
@@ -285,7 +290,7 @@ with st.sidebar:
                 if st.button("보안 상태", key="security_status_button"):
                     # Show security status
                     try:
-                        status = asyncio.run(security_service.get_security_status())
+                        status = security_service.get_security_status()
                         st.info(f"""### 🔐 보안 상태
 - PIN 설정: ✅ 완료
 - 잠금 상태: {"🔴 잠김" if status["is_locked"] else "🟢 정상"}
@@ -303,8 +308,11 @@ with st.sidebar:
 # Helper Functions
 # =============================================================================
 
+
 @st.cache_data(ttl=10)
-def get_market_data(ticker: str, interval: str = "minute60", count: int = 48, testnet_mode: bool = False):
+def get_market_data(
+    ticker: str, interval: str = "minute60", count: int = 48, testnet_mode: bool = False
+):
     """Fetch market data with caching."""
     import asyncio
 
@@ -349,7 +357,13 @@ def get_account_info(testnet_mode: bool = False):
 
 
 @st.cache_data(ttl=120)
-def get_ai_recommendation(ticker: str, interval: str, strategy: TradingStrategy, instruction_version: str = "v3", testnet_mode: bool = False):
+def get_ai_recommendation(
+    ticker: str,
+    interval: str,
+    strategy: TradingStrategy,
+    instruction_version: str = "v3",
+    testnet_mode: bool = False,
+):
     """Get AI trading recommendation."""
     import asyncio
 
@@ -441,6 +455,7 @@ Price Change (24h): {price_change:+.2f}%
 # Security UI Functions
 # =============================================================================
 
+
 def show_pin_setup_modal():
     """PIN 설정 Modal 표시"""
     container = get_container()
@@ -458,15 +473,11 @@ def show_pin_setup_modal():
             type="password",
             max_chars=4,
             placeholder="****",
-            key="setup_new_pin"
+            key="setup_new_pin",
         )
     with col2:
         confirm_pin = st.text_input(
-            "PIN 확인",
-            type="password",
-            max_chars=4,
-            placeholder="****",
-            key="setup_confirm_pin"
+            "PIN 확인", type="password", max_chars=4, placeholder="****", key="setup_confirm_pin"
         )
 
     if st.button("PIN 설정", type="primary", key="confirm_setup_pin"):
@@ -515,22 +526,22 @@ def show_pin_verification_modal(trade_type: str, trade_details: dict):
     st.markdown(f"### 🔐 PIN 인증 - {trade_type.upper()} 거래")
 
     # 거래 정보 표시
-    st.info(f"""**거래 정보:**
-- 코인: {trade_details.get('ticker', 'N/A')}
-- 금액: {trade_details.get('amount', 0):,.0f} KRW
-- 수량: {trade_details.get('quantity', 0):.8f}""" if trade_type == "buy" else f"""**거래 정보:**
-- 코인: {trade_details.get('ticker', 'N/A')}
-- 수량: {trade_details.get('quantity', 0):.8f}""")
+    st.info(
+        f"""**거래 정보:**
+- 코인: {trade_details.get("ticker", "N/A")}
+- 금액: {trade_details.get("amount", 0):,.0f} KRW
+- 수량: {trade_details.get("quantity", 0):.8f}"""
+        if trade_type == "buy"
+        else f"""**거래 정보:**
+- 코인: {trade_details.get("ticker", "N/A")}
+- 수량: {trade_details.get("quantity", 0):.8f}"""
+    )
 
     st.markdown("---")
 
     # PIN 입력
     pin_input = st.text_input(
-        "PIN 입력 (4자리)",
-        type="password",
-        max_chars=4,
-        placeholder="****",
-        key="verify_pin_input"
+        "PIN 입력 (4자리)", type="password", max_chars=4, placeholder="****", key="verify_pin_input"
     )
 
     # 실패 횟수 표시
@@ -555,6 +566,7 @@ def show_pin_verification_modal(trade_type: str, trade_details: dict):
 
                 if is_valid:
                     st.session_state.pin_verified = True
+                    st.session_state["verified_pin"] = pin_input
                     st.session_state.pin_input_attempts = 0
                     st.success("✅ PIN 인증 성공!")
                     st.session_state.pending_trade = {"verified": True, **trade_details}
@@ -597,15 +609,14 @@ if st.session_state.show_pin_setup:
     st.stop()  # Stop execution until PIN is set or cancelled
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 차트 (Chart)",
-    "💰 거래 (Trading)",
-    "🤖 AI 분석 (AI Analysis)",
-    "📋 거래 내역 (History)"
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["📊 차트 (Chart)", "💰 거래 (Trading)", "🤖 AI 분석 (AI Analysis)", "📋 거래 내역 (History)"]
+)
 
 with tab1:
-    st.subheader(f"실시간 시세 차트 - {ticker} ({INTERVAL_CONFIG.get(st.session_state.selected_interval, {}).get('label', '')})")
+    st.subheader(
+        f"실시간 시세 차트 - {ticker} ({INTERVAL_CONFIG.get(st.session_state.selected_interval, {}).get('label', '')})"
+    )
 
     # Fetch market data
     interval = st.session_state.selected_interval
@@ -613,7 +624,10 @@ with tab1:
     with st.spinner("시장 데이터를 가져오는 중..."):
         try:
             ohlcv_data, current_price = get_market_data(
-                ticker, interval=interval, count=cfg["count"], testnet_mode=st.session_state.testnet_mode
+                ticker,
+                interval=interval,
+                count=cfg["count"],
+                testnet_mode=st.session_state.testnet_mode,
             )
         except Exception as e:
             st.error(f"시장 데이터를 가져오는데 실패했습니다: {e}")
@@ -638,28 +652,34 @@ with tab1:
             st.metric("거래량", f"{ohlcv_data[-1].volume:,.2f}")
 
         # Create chart
-        df = pd.DataFrame([
-            {
-                "시간": datetime.fromtimestamp(c.timestamp / 1000),
-                "시가": c.open,
-                "고가": c.high,
-                "저가": c.low,
-                "종가": c.close,
-                "거래량": c.volume,
-            }
-            for c in ohlcv_data
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "시간": datetime.fromtimestamp(c.timestamp / 1000),
+                    "시가": c.open,
+                    "고가": c.high,
+                    "저가": c.low,
+                    "종가": c.close,
+                    "거래량": c.volume,
+                }
+                for c in ohlcv_data
+            ]
+        )
         df.set_index("시간", inplace=True)
 
-        fig = go.Figure(data=[go.Candlestick(
-            x=df.index,
-            open=df['시가'],
-            high=df['고가'],
-            low=df['저가'],
-            close=df['종가'],
-            increasing_line_color='red',
-            decreasing_line_color='blue',
-        )])
+        fig = go.Figure(
+            data=[
+                go.Candlestick(
+                    x=df.index,
+                    open=df["시가"],
+                    high=df["고가"],
+                    low=df["저가"],
+                    close=df["종가"],
+                    increasing_line_color="red",
+                    decreasing_line_color="blue",
+                )
+            ]
+        )
 
         fig.update_layout(
             title=f"{ticker} 가격 차트",
@@ -715,13 +735,17 @@ with tab2:
                 except Exception:
                     current_value = 0
 
-                holdings_data.append({
-                    "통화": balance.currency,
-                    "보유량": balance.balance,
-                    "평균 단가": f"{balance.avg_buy_price:,.0f}" if balance.avg_buy_price > 0 else "N/A",
-                    "사용 중/잠김": balance.locked,
-                    "현재 가치": f"{current_value:,.0f} KRW" if current_value > 0 else "N/A",
-                })
+                holdings_data.append(
+                    {
+                        "통화": balance.currency,
+                        "보유량": balance.balance,
+                        "평균 단가": f"{balance.avg_buy_price:,.0f}"
+                        if balance.avg_buy_price > 0
+                        else "N/A",
+                        "사용 중/잠김": balance.locked,
+                        "현재 가치": f"{current_value:,.0f} KRW" if current_value > 0 else "N/A",
+                    }
+                )
 
             st.dataframe(
                 holdings_data,
@@ -741,7 +765,9 @@ with tab2:
         try:
             is_pin_set = security_service.is_pin_set()
             if not is_pin_set:
-                st.warning("⚠️ 거래를 시작하기 전에 PIN을 설정해주세요. 사이드바의 'PIN 설정하기' 버튼을 클릭하세요.")
+                st.warning(
+                    "⚠️ 거래를 시작하기 전에 PIN을 설정해주세요. 사이드바의 'PIN 설정하기' 버튼을 클릭하세요."
+                )
         except Exception as e:
             st.warning(f"⚠️ 보안 상태 확인 중 오류: {e}")
 
@@ -749,7 +775,9 @@ with tab2:
 
         with col1:
             st.markdown("#### 🟢 매수 (Buy)")
-            buy_amount = st.number_input("매수 금액 (KRW)", min_value=5000, value=10000, step=1000, key="buy_amount")
+            buy_amount = st.number_input(
+                "매수 금액 (KRW)", min_value=5000, value=10000, step=1000, key="buy_amount"
+            )
 
             if st.button("매수 주문", type="primary", key="buy_button"):
                 # PIN verification first
@@ -758,23 +786,35 @@ with tab2:
                         "type": "buy",
                         "ticker": ticker,
                         "amount": buy_amount,
-                        "verified": False
+                        "verified": False,
                     }
                     st.rerun()
 
                 # If PIN is verified, proceed with trade
-                if st.session_state.pin_verified and st.session_state.pending_trade and st.session_state.pending_trade.get("verified"):
+                if (
+                    st.session_state.pin_verified
+                    and st.session_state.pending_trade
+                    and st.session_state.pending_trade.get("verified")
+                ):
                     with st.spinner("주문 검증 중..."):
                         try:
                             # Request buy order approval through security service
-                            approval = asyncio.run(security_service.request_buy_order(
-                                ticker, buy_amount, session_id="web_ui"
-                            ))
+                            approval = asyncio.run(
+                                security_service.secure_request_buy(
+                                    ticker,
+                                    buy_amount,
+                                    pin=st.session_state.get("verified_pin", ""),
+                                    session_id="web_ui",
+                                )
+                            )
 
                             # Check if approval requires high-value confirmation
                             if approval.high_value_trade and not approval.high_value_confirmed:
                                 st.warning(f"⚠️ 고액 거래 ({buy_amount:,.0f} KRW)")
-                                if not st.checkbox("고액 거래임을 확인하고 실행합니다", key="confirm_high_value_buy"):
+                                if not st.checkbox(
+                                    "고액 거래임을 확인하고 실행합니다",
+                                    key="confirm_high_value_buy",
+                                ):
                                     st.info("거래가 취소되었습니다.")
                                     st.session_state.pin_verified = False
                                     st.session_state.pending_trade = None
@@ -794,15 +834,26 @@ with tab2:
                             if st.button("확인 및 주문 실행", type="primary", key="confirm_buy"):
                                 with st.spinner("주문 실행 중..."):
                                     approval.mark_approved()
-                                    result = asyncio.run(security_service.execute_approved_trade(
-                                        approval, session_id="web_ui"
-                                    ))
+                                    result = asyncio.run(
+                                        security_service.secure_execute_trade(
+                                            approval, high_value_confirmed=True, session_id="web_ui"
+                                        )
+                                    )
 
                                     if result.success:
                                         st.success("### 주문 성공!")
-                                        st.metric("주문번호", result.order_id[:8] + "..." if result.order_id else "N/A")
-                                        st.metric("실행 가격", f"{result.executed_price or 0:,.0f} KRW")
-                                        st.metric("실행 수량", f"{result.executed_quantity or 0:.8f}")
+                                        st.metric(
+                                            "주문번호",
+                                            result.order_id[:8] + "..."
+                                            if result.order_id
+                                            else "N/A",
+                                        )
+                                        st.metric(
+                                            "실행 가격", f"{result.executed_price or 0:,.0f} KRW"
+                                        )
+                                        st.metric(
+                                            "실행 수량", f"{result.executed_quantity or 0:.8f}"
+                                        )
                                         # Reset PIN verification and rerun
                                         st.session_state.pin_verified = False
                                         st.session_state.pending_trade = None
@@ -837,7 +888,9 @@ with tab2:
 
         with col2:
             st.markdown("#### 🔴 매도 (Sell)")
-            sell_amount = st.number_input("매도 수량", min_value=0.0, value=0.0001, step=0.0001, key="sell_amount")
+            sell_amount = st.number_input(
+                "매도 수량", min_value=0.0, value=0.0001, step=0.0001, key="sell_amount"
+            )
 
             if st.button("매도 주문", type="primary", key="sell_button"):
                 # PIN verification first
@@ -846,23 +899,35 @@ with tab2:
                         "type": "sell",
                         "ticker": ticker,
                         "quantity": sell_amount,
-                        "verified": False
+                        "verified": False,
                     }
                     st.rerun()
 
                 # If PIN is verified, proceed with trade
-                if st.session_state.pin_verified and st.session_state.pending_trade and st.session_state.pending_trade.get("verified"):
+                if (
+                    st.session_state.pin_verified
+                    and st.session_state.pending_trade
+                    and st.session_state.pending_trade.get("verified")
+                ):
                     with st.spinner("주문 검증 중..."):
                         try:
                             # Request sell order approval through security service
-                            approval = asyncio.run(security_service.request_sell_order(
-                                ticker, sell_amount, session_id="web_ui"
-                            ))
+                            approval = asyncio.run(
+                                security_service.secure_request_sell(
+                                    ticker,
+                                    sell_amount,
+                                    pin=st.session_state.get("verified_pin", ""),
+                                    session_id="web_ui",
+                                )
+                            )
 
                             # Check if approval requires high-value confirmation
                             if approval.high_value_trade and not approval.high_value_confirmed:
                                 st.warning("⚠️ 고액 거래")
-                                if not st.checkbox("고액 거래임을 확인하고 실행합니다", key="confirm_high_value_sell"):
+                                if not st.checkbox(
+                                    "고액 거래임을 확인하고 실행합니다",
+                                    key="confirm_high_value_sell",
+                                ):
                                     st.info("거래가 취소되었습니다.")
                                     st.session_state.pin_verified = False
                                     st.session_state.pending_trade = None
@@ -875,22 +940,36 @@ with tab2:
                                 st.metric("매도 수량", f"{sell_amount:.8f}")
                                 st.metric("예상 가격", f"{approval.estimated_price or 0:,.0f} KRW")
                             with col_b:
-                                st.metric("예상 금액", f"{(approval.estimated_price or 0) * sell_amount:,.0f} KRW")
+                                st.metric(
+                                    "예상 금액",
+                                    f"{(approval.estimated_price or 0) * sell_amount:,.0f} KRW",
+                                )
                                 st.metric("예상 수수료", f"{approval.fee_estimate or 0:.2f} KRW")
 
                             # Approval button
                             if st.button("확인 및 주문 실행", type="primary", key="confirm_sell"):
                                 with st.spinner("주문 실행 중..."):
                                     approval.mark_approved()
-                                    result = asyncio.run(security_service.execute_approved_trade(
-                                        approval, session_id="web_ui"
-                                    ))
+                                    result = asyncio.run(
+                                        security_service.secure_execute_trade(
+                                            approval, high_value_confirmed=True, session_id="web_ui"
+                                        )
+                                    )
 
                                     if result.success:
                                         st.success("### 주문 성공!")
-                                        st.metric("주문번호", result.order_id[:8] + "..." if result.order_id else "N/A")
-                                        st.metric("실행 가격", f"{result.executed_price or 0:,.0f} KRW")
-                                        st.metric("실행 수량", f"{result.executed_quantity or 0:.8f}")
+                                        st.metric(
+                                            "주문번호",
+                                            result.order_id[:8] + "..."
+                                            if result.order_id
+                                            else "N/A",
+                                        )
+                                        st.metric(
+                                            "실행 가격", f"{result.executed_price or 0:,.0f} KRW"
+                                        )
+                                        st.metric(
+                                            "실행 수량", f"{result.executed_quantity or 0:.8f}"
+                                        )
                                         # Reset PIN verification and rerun
                                         st.session_state.pin_verified = False
                                         st.session_state.pending_trade = None
@@ -926,8 +1005,7 @@ with tab2:
         # Show PIN verification modal if pending trade exists
         if st.session_state.pending_trade and not st.session_state.pending_trade.get("verified"):
             show_pin_verification_modal(
-                st.session_state.pending_trade["type"],
-                st.session_state.pending_trade
+                st.session_state.pending_trade["type"], st.session_state.pending_trade
             )
 
 with tab3:
@@ -987,7 +1065,7 @@ with tab3:
                     security_service = container.security_service()
 
                     # Calculate trade amount based on recommendation
-                    krw_balance = asyncio.run(get_account_info(testnet_mode=st.session_state.testnet_mode))
+                    krw_balance = get_account_info(testnet_mode=st.session_state.testnet_mode)
                     total_krw = next((b.balance for b in krw_balance if b.currency == "KRW"), 0.0)
 
                     if decision.decision == "buy":
@@ -996,13 +1074,20 @@ with tab3:
 
                         # Minimum order check
                         if buy_amount < 5000:
-                            st.warning(f"⚠️ 최소 주문 금액 미달 (현재: {buy_amount:,.0f} KRW, 필요: 5,000 KRW)")
+                            st.warning(
+                                f"⚠️ 최소 주문 금액 미달 (현재: {buy_amount:,.0f} KRW, 필요: 5,000 KRW)"
+                            )
                         else:
                             # Request buy approval
                             with st.spinner("매수 주문 승인 요청 중..."):
-                                approval = asyncio.run(security_service.request_buy_order(
-                                    ticker, buy_amount, session_id="web_ui_ai"
-                                ))
+                                approval = asyncio.run(
+                                    security_service.secure_request_buy(
+                                        ticker,
+                                        buy_amount,
+                                        pin=st.session_state.get("verified_pin", ""),
+                                        session_id="web_ui_ai",
+                                    )
+                                )
 
                             # Display approval details and confirm
                             st.info("### 매수 주문 확인")
@@ -1018,19 +1103,25 @@ with tab3:
                             st.caption("⏱️ 3초 후 자동 실행됩니다...")
 
                             import time
+
                             time.sleep(3)
 
                             with st.spinner("주문 실행 중..."):
                                 approval.mark_approved()
-                                result = asyncio.run(security_service.execute_approved_trade(
-                                    approval, session_id="web_ui_ai"
-                                ))
+                                result = asyncio.run(
+                                    security_service.secure_execute_trade(
+                                        approval, high_value_confirmed=True, session_id="web_ui_ai"
+                                    )
+                                )
 
                             if result.success:
                                 st.success("### ✅ 매수 주문 성공!")
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
-                                    st.metric("주문번호", result.order_id[:8] + "..." if result.order_id else "N/A")
+                                    st.metric(
+                                        "주문번호",
+                                        result.order_id[:8] + "..." if result.order_id else "N/A",
+                                    )
                                 with col2:
                                     st.metric("실행 가격", f"{result.executed_price or 0:,.0f} KRW")
                                 with col3:
@@ -1045,8 +1136,10 @@ with tab3:
                     elif decision.decision == "sell":
                         # Get coin balance for the selected ticker
                         coin = ticker.split("-")[1] if "-" in ticker else ticker
-                        coin_balance = asyncio.run(get_account_info(testnet_mode=st.session_state.testnet_mode))
-                        total_coin = next((b.balance for b in coin_balance if b.currency == coin), 0.0)
+                        coin_balance = get_account_info(testnet_mode=st.session_state.testnet_mode)
+                        total_coin = next(
+                            (b.balance for b in coin_balance if b.currency == coin), 0.0
+                        )
 
                         # Calculate sell quantity (percentage of total coins)
                         sell_quantity = total_coin * (decision.percentage / 100.0)
@@ -1057,9 +1150,14 @@ with tab3:
                         else:
                             # Request sell approval
                             with st.spinner("매도 주문 승인 요청 중..."):
-                                approval = asyncio.run(security_service.request_sell_order(
-                                    ticker, sell_quantity, session_id="web_ui_ai"
-                                ))
+                                approval = asyncio.run(
+                                    security_service.secure_request_sell(
+                                        ticker,
+                                        sell_quantity,
+                                        pin=st.session_state.get("verified_pin", ""),
+                                        session_id="web_ui_ai",
+                                    )
+                                )
 
                             # Display approval details and confirm
                             st.info("### 매도 주문 확인")
@@ -1068,26 +1166,35 @@ with tab3:
                                 st.metric("매도 수량", f"{sell_quantity:.8f} {coin}")
                                 st.metric("예상 가격", f"{approval.estimated_price or 0:,.0f} KRW")
                             with col_b:
-                                st.metric("예상 금액", f"{(approval.estimated_price or 0) * sell_quantity:,.0f} KRW")
+                                st.metric(
+                                    "예상 금액",
+                                    f"{(approval.estimated_price or 0) * sell_quantity:,.0f} KRW",
+                                )
                                 st.metric("예상 수수료", f"{approval.fee_estimate or 0:.2f} KRW")
 
                             # Auto-confirm after 3 seconds (for UX)
                             st.caption("⏱️ 3초 후 자동 실행됩니다...")
 
                             import time
+
                             time.sleep(3)
 
                             with st.spinner("주문 실행 중..."):
                                 approval.mark_approved()
-                                result = asyncio.run(security_service.execute_approved_trade(
-                                    approval, session_id="web_ui_ai"
-                                ))
+                                result = asyncio.run(
+                                    security_service.secure_execute_trade(
+                                        approval, high_value_confirmed=True, session_id="web_ui_ai"
+                                    )
+                                )
 
                             if result.success:
                                 st.success("### ✅ 매도 주문 성공!")
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
-                                    st.metric("주문번호", result.order_id[:8] + "..." if result.order_id else "N/A")
+                                    st.metric(
+                                        "주문번호",
+                                        result.order_id[:8] + "..." if result.order_id else "N/A",
+                                    )
                                 with col2:
                                     st.metric("실행 가격", f"{result.executed_price or 0:,.0f} KRW")
                                 with col3:
@@ -1152,6 +1259,7 @@ with tab4:
         )
 
     # Fetch trade history
+    history_service = None
     with st.spinner("거래 내역을 불러오는 중..."):
         try:
             trade_repo = container.trade_repository()
@@ -1160,16 +1268,17 @@ with tab4:
             # Get filtered trades
             ticker_filter = None if filter_coin == "전체" else filter_coin
             from datetime import timedelta
+
             if filter_days == "전체":
                 date_filter = None
             else:
-                date_filter = (datetime.now() - timedelta(days=filter_days), datetime.now())
+                date_filter = (datetime.now() - timedelta(days=int(filter_days)), datetime.now())
 
-            trades = asyncio.run(trade_repo.get_trades(
+            trades = trade_repo.get_trades(
                 ticker=ticker_filter,
                 start_date=date_filter[0] if date_filter else None,
                 end_date=date_filter[1] if date_filter else None,
-            ))
+            )
 
             # Filter by trade type if selected
             if filter_type != "전체":
@@ -1184,18 +1293,22 @@ with tab4:
     if trades:
         # Summary metrics
         st.markdown("---")
-        summary = asyncio.run(history_service.get_trade_summary(trades))
+        buy_trades = [t for t in trades if t.trade_type == TradeType.BUY]
+        sell_trades = [t for t in trades if t.trade_type == TradeType.SELL]
+        total_profit = (
+            history_service._calculate_fifo_profit_from_trades(trades) if history_service else 0.0
+        )
 
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("총 거래 횟수", f"{summary['total_trades']}회")
+            st.metric("총 거래 횟수", f"{len(trades)}회")
         with col2:
-            st.metric("매수 횟수", f"{summary['buy_count']}회")
+            st.metric("매수 횟수", f"{len(buy_trades)}회")
         with col3:
-            st.metric("매도 횟수", f"{summary['sell_count']}회")
+            st.metric("매도 횟수", f"{len(sell_trades)}회")
         with col4:
-            profit_color = "🟢" if summary['total_profit'] >= 0 else "🔴"
-            st.metric(f"{profit_color} 총 수익/손실", f"{summary['total_profit']:,.0f} KRW")
+            profit_color = "🟢" if total_profit >= 0 else "🔴"
+            st.metric(f"{profit_color} 총 수익/손실", f"{total_profit:,.0f} KRW")
 
         st.markdown("---")
 
@@ -1205,23 +1318,25 @@ with tab4:
         # Convert trades to DataFrame
         trade_data = []
         for trade in trades:
-            trade_data.append({
-                "시간": trade.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                "코인": trade.ticker,
-                "유형": "매수" if trade.trade_type == TradeType.BUY else "매도",
-                "수량": f"{trade.quantity:.8f}",
-                "가격": f"{trade.price:,.0f}",
-                "금액": f"{trade.cost if trade.trade_type == TradeType.BUY else trade.revenue:,.0f} KRW",
-            })
+            trade_data.append(
+                {
+                    "시간": trade.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "코인": trade.ticker,
+                    "유형": "매수" if trade.trade_type == TradeType.BUY else "매도",
+                    "수량": f"{trade.quantity:.8f}",
+                    "가격": f"{trade.price:,.0f}",
+                    "금액": f"{trade.total_cost() if trade.trade_type == TradeType.BUY else trade.total_revenue():,.0f} KRW",
+                }
+            )
 
         df = pd.DataFrame(trade_data)
 
         # Display with color coding for trade type
         def highlight_trade_type(row):
-            if row['유형'] == '매수':
-                return ['background-color: rgba(0, 255, 0, 0.1)'] * len(row)
+            if row["유형"] == "매수":
+                return ["background-color: rgba(0, 255, 0, 0.1)"] * len(row)
             else:
-                return ['background-color: rgba(255, 0, 0, 0.1)'] * len(row)
+                return ["background-color: rgba(255, 0, 0, 0.1)"] * len(row)
 
         styled_df = df.style.apply(highlight_trade_type, axis=1)
         st.dataframe(styled_df, use_container_width=True, height=400)
@@ -1273,6 +1388,8 @@ st.markdown("---")
 st.caption("AI Cryptocurrency Auto-Trading System v5.0 | GLM-5/GLM-4.6V Powered")
 
 # 시뮬레이션 모드 경고 (실제 거래 모드가 아닐 때만 표시)
-if st.session_state.get("testnet_mode", True) or st.session_state.get("trading_mode") == "simulation":
+if (
+    st.session_state.get("testnet_mode", True)
+    or st.session_state.get("trading_mode") == "simulation"
+):
     st.caption("⚠️ 이 UI는 시뮬레이션/테스트넷 모드입니다. 실제 거래를 위해서는 모드를 변경하세요.")
-
