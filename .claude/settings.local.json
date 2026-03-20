@@ -1,9 +1,21 @@
 {
+  "env": {
+    "CLAUDE_CODE_TEAMMATE_DISPLAY": "tmux"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(\"/c/Windows/System32/cmd.exe\":*)",
+      "Read(//c/Users/taewo/.nvm/**)",
+      "Read(//c/Users/taewo/scoop/apps/**)",
+      "Read(//c/Program Files/nodejs/**)",
+      "Read(//c/Users/taewo/.local/bin/**)",
+      "Bash(\"/c/Program:*)"
+    ]
+  },
   "enabledMcpjsonServers": [
     "context7",
     "sequential-thinking"
-  ],
-  "env": {
-    "CLAUDE_CODE_TEAMMATE_DISPLAY": "tmux"
-  }
+  ]
 }
